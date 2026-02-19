@@ -1,18 +1,51 @@
 {
   "name": "selfish-pipeline",
   "version": "1.0.0",
-  "description": "Claude Code 전용 자동화 파이프라인 플러그인",
-  "bin": "./bin/cli.mjs",
+  "description": "Claude Code 전용 자동화 파이프라인 플러그인 — spec → plan → tasks → implement → review → clean",
+  "bin": {
+    "selfish-pipeline": "./bin/cli.mjs"
+  },
   "type": "module",
+  "files": [
+    "bin/",
+    "commands/",
+    "hooks/",
+    "scripts/",
+    "templates/",
+    ".claude-plugin/",
+    "LICENSE",
+    "README.md",
+    "MIGRATION.md"
+  ],
+  "author": {
+    "name": "jhlee0409",
+    "email": "relee6203@gmail.com"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/jhlee0409/selfish-pipeline"
   },
+  "homepage": "https://github.com/jhlee0409/selfish-pipeline#readme",
+  "bugs": {
+    "url": "https://github.com/jhlee0409/selfish-pipeline/issues"
+  },
+  "scripts": {
+    "lint": "shellcheck scripts/*.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "keywords": [
     "claude-code",
+    "claude-code-plugin",
     "plugin",
     "pipeline",
-    "automation"
+    "automation",
+    "spec",
+    "plan",
+    "implement",
+    "review",
+    "critic-loop"
   ]
 }

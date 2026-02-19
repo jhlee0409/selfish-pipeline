@@ -1,2 +1,10 @@
 .DS_Store
 *.bak
+node_modules/
+*.tgz
+
+# Selfish pipeline state files (runtime artifacts)
+.claude/.selfish-*
+
+# Pipeline spec artifacts (generated during auto pipeline)
+specs/
