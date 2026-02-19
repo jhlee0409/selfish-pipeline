@@ -1,3 +1,15 @@
+---
+name: selfish:checkpoint
+description: "세션 상태 저장"
+argument-hint: "[체크포인트 메시지]"
+model: haiku
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Bash
+---
+
 # /selfish:checkpoint — 세션 상태 저장
 
 > 현재 작업 상태를 memory/checkpoint.md에 저장한다.

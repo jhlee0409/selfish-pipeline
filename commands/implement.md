@@ -1,3 +1,19 @@
+---
+name: selfish:implement
+description: "코드 구현 실행"
+argument-hint: "[태스크 ID 또는 Phase 지정]"
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/track-selfish-changes.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
+---
+
 # /selfish:implement — 코드 구현 실행
 
 > tasks.md의 태스크를 Phase별로 실행한다.
@@ -7,9 +23,13 @@
 
 - `$ARGUMENTS` — (선택) 특정 태스크 ID 또는 Phase 지정 (예: `T005`, `phase3`)
 
+## 프로젝트 설정 (자동 로드)
+
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+
 ## 설정 로드
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
 
 ## 실행 절차
 

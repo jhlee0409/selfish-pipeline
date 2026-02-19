@@ -1,3 +1,13 @@
+---
+name: selfish:resume
+description: "세션 복원"
+argument-hint: ""
+model: haiku
+allowed-tools:
+  - Read
+  - Glob
+---
+
 # /selfish:resume — 세션 복원
 
 > memory/checkpoint.md에서 이전 세션 상태를 복원하고 작업을 재개한다.

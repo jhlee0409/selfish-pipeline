@@ -1,3 +1,8 @@
+---
+name: selfish:clarify
+description: "명세 모호성 해소"
+argument-hint: "[집중 영역: 보안, 성능, UI 흐름]"
+---
 # /selfish:clarify — 명세 모호성 해소
 
 > spec.md의 모호하거나 불완전한 영역을 식별하고, 사용자 질의를 통해 해결한다.

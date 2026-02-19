@@ -1,3 +1,17 @@
+---
+name: selfish:research
+description: "기술 리서치"
+argument-hint: "[리서치 주제]"
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Write
+  - WebSearch
+  - WebFetch
+  - Task
+---
+
 # /selfish:research — 기술 리서치
 
 > 기술적 질문을 조사하고 결론을 정리한다.

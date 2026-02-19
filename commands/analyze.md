@@ -1,3 +1,13 @@
+---
+name: selfish:analyze
+description: "아티팩트 정합성 검증 (읽기 전용)"
+argument-hint: "[검증 범위: spec-plan, tasks-only]"
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+---
+
 # /selfish:analyze — 아티팩트 정합성 검증
 
 > spec.md, plan.md, tasks.md 간의 일관성과 품질을 검증한다.

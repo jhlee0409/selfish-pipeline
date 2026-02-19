@@ -1,3 +1,16 @@
+---
+name: selfish:architect
+description: "아키텍처 분석 및 설계 조언 (읽기 전용)"
+argument-hint: "[분석 대상 또는 설계 질문]"
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+  - WebSearch
+---
+
 # /selfish:architect — 아키텍처 분석 및 설계 조언
 
 > 코드베이스의 아키텍처를 분석하고 설계 결정을 기록한다.

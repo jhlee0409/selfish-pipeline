@@ -1,3 +1,15 @@
+---
+name: selfish:review
+description: "코드 리뷰 (읽기 전용)"
+argument-hint: "[범위: 파일 경로, PR 번호, 또는 staged]"
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+---
+
 # /selfish:review — 코드 리뷰
 
 > 변경된 코드를 종합적으로 리뷰한다 (품질, 보안, 성능, 아키텍처 준수).
@@ -8,9 +20,13 @@
 - `$ARGUMENTS` — (선택) 리뷰 범위 지정 (파일 경로, PR 번호, 또는 "staged")
   - 미지정 시: 현재 브랜치의 `git diff` (unstaged + staged) 전체
 
+## 프로젝트 설정 (자동 로드)
+
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+
 ## 설정 로드
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
 
 ## 실행 절차
 

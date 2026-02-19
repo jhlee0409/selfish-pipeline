@@ -1,3 +1,8 @@
+---
+name: selfish:plan
+description: "구현 설계"
+argument-hint: "[추가 컨텍스트 또는 제약 조건]"
+---
 # /selfish:plan — 구현 설계
 
 > 기능 명세(spec.md)를 기반으로 구현 계획(plan.md)을 생성한다.
@@ -7,9 +12,13 @@
 
 - `$ARGUMENTS` — (선택) 추가 컨텍스트 또는 제약 조건
 
+## 프로젝트 설정 (자동 로드)
+
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+
 ## 설정 로드
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
 
 ## 실행 절차
 

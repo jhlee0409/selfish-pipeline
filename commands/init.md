@@ -1,3 +1,9 @@
+---
+name: selfish:init
+description: "프로젝트 초기 설정"
+argument-hint: "[프리셋 이름: nextjs-fsd]"
+---
+
 # /selfish:init — 프로젝트 초기 설정
 
 > 현재 프로젝트에 `.claude/selfish.config.md` 설정 파일을 생성한다.

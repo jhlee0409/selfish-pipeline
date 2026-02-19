@@ -1,3 +1,15 @@
+---
+name: selfish:security
+description: "보안 스캔 (읽기 전용)"
+argument-hint: "[스캔 범위: 파일/디렉토리 경로 또는 full]"
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+---
+
 # /selfish:security — 보안 스캔
 
 > 코드베이스의 보안 취약점을 탐지하고 보고한다.

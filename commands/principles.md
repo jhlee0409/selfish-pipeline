@@ -1,3 +1,14 @@
+---
+name: selfish:principles
+description: "프로젝트 원칙 관리"
+argument-hint: "[동작: add, remove, list, check]"
+allowed-tools:
+  - Read
+  - Write
+  - Grep
+  - Glob
+---
+
 # /selfish:principles — 프로젝트 원칙 관리
 
 > 프로젝트의 핵심 원칙(constitution)을 생성하고 관리한다.

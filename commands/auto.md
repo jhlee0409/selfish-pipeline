@@ -1,3 +1,19 @@
+---
+name: selfish:auto
+description: "Full Auto 파이프라인"
+argument-hint: "[기능 설명 자연어 텍스트]"
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/track-selfish-changes.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
+---
+
 # /selfish:auto — Full Auto 파이프라인
 
 > 기능 설명 하나로 spec → plan → tasks → implement → review → clean을 완전 자동 실행한다.
@@ -7,9 +23,13 @@
 
 - `$ARGUMENTS` — (필수) 기능 설명 자연어 텍스트
 
+## 프로젝트 설정 (자동 로드)
+
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+
 ## 설정 로드
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 이 파일에 정의된 값을 아래에서 `{config.*}`로 참조한다:
+**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 이 파일에 정의된 값을 아래에서 `{config.*}`로 참조한다:
 - `{config.ci}` — 전체 CI 명령어
 - `{config.gate}` — Phase 게이트 명령어
 - `{config.architecture}` — 아키텍처 스타일 및 규칙

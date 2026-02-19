@@ -1,3 +1,8 @@
+---
+name: selfish:spec
+description: "기능 명세서 생성"
+argument-hint: "[기능 설명 자연어 텍스트]"
+---
 # /selfish:spec — 기능 명세서 생성
 
 > 자연어 기능 설명을 구조화된 명세서(spec.md)로 변환한다.
@@ -7,9 +12,13 @@
 
 - `$ARGUMENTS` — (필수) 기능 설명 자연어 텍스트
 
+## 프로젝트 설정 (자동 로드)
+
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+
 ## 설정 로드
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
 
 ## 실행 절차
 

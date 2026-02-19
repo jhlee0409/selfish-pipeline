@@ -1,3 +1,9 @@
+---
+name: selfish:debug
+description: "버그 진단 및 수정"
+argument-hint: "[버그 설명, 에러 메시지, 또는 재현 단계]"
+---
+
 # /selfish:debug — 버그 진단 및 수정
 
 > 버그의 근본 원인을 분석하고 수정한다.

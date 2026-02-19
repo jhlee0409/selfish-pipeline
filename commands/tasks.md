@@ -1,3 +1,8 @@
+---
+name: selfish:tasks
+description: "태스크 분해"
+argument-hint: "[제약/우선순위 지시]"
+---
 # /selfish:tasks — 태스크 분해
 
 > plan.md를 기반으로 실행 가능한 태스크 목록(tasks.md)을 생성한다.
