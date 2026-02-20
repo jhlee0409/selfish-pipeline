@@ -1,105 +1,238 @@
 ---
 name: selfish:init
-description: "프로젝트 초기 설정"
-argument-hint: "[프리셋 이름: nextjs-fsd]"
+description: "Project initial setup"
+argument-hint: "[preset name: nextjs-fsd]"
 disable-model-invocation: true
 model: haiku
 ---
 
-# /selfish:init — 프로젝트 초기 설정
+# /selfish:init — Project Initial Setup
 
-> 현재 프로젝트에 `.claude/selfish.config.md` 설정 파일을 생성한다.
-> package.json, 디렉토리 구조, 설정 파일 등을 분석하여 프로젝트에 맞는 설정을 자동 추론한다.
+> Creates a `.claude/selfish.config.md` configuration file in the current project,
+> and injects selfish intent-based routing rules into `~/.claude/CLAUDE.md`.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 템플릿 프리셋 이름 (예: `nextjs-fsd`)
-  - 미지정 시: 프로젝트 구조를 분석하여 자동 추론
-  - 프리셋 지정 시: `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.{preset}.md` 사용
+- `$ARGUMENTS` — (optional) Template preset name (e.g., `nextjs-fsd`)
+  - If not specified: analyzes project structure and auto-infers
+  - If preset specified: uses `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.{preset}.md`
 
-## 실행 절차
+## Execution Steps
 
-### 1. 기존 설정 확인
+### 1. Check for Existing Config
 
-`.claude/selfish.config.md`가 이미 존재하면:
-- 사용자에게 확인: "설정 파일이 이미 존재합니다. 덮어쓰시겠습니까?"
-- 거부 시 **중단**
+If `.claude/selfish.config.md` already exists:
+- Ask user: "Config file already exists. Do you want to overwrite it?"
+- If declined: **abort**
 
-### 2. 프리셋 분기
+### 2. Preset Branch
 
-#### A. 프리셋 지정 (`$ARGUMENTS`가 있는 경우)
+#### A. Preset Specified (`$ARGUMENTS` provided)
 
-1. `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.{$ARGUMENTS}.md` 존재 확인
-2. 있으면: 해당 파일을 `.claude/selfish.config.md`로 복사
-3. 없으면: "프리셋 `{$ARGUMENTS}`을 찾을 수 없습니다. 사용 가능: {목록}" 출력 후 **중단**
+1. Verify `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.{$ARGUMENTS}.md` exists
+2. If found: copy that file to `.claude/selfish.config.md`
+3. If not found: print "Preset `{$ARGUMENTS}` not found. Available: {list}" then **abort**
 
-#### B. 자동 추론 (`$ARGUMENTS` 없는 경우)
+#### B. Auto-Infer (`$ARGUMENTS` not provided)
 
-프로젝트 구조를 분석하여 설정을 자동 추론:
+Analyze project structure and auto-infer configuration:
 
-**Step 1. 패키지 매니저 / 스크립트 감지**
-- `package.json` 읽기 → `scripts` 필드에서 CI 관련 커맨드 추출
-- lockfile로 패키지 매니저 판별 (yarn.lock / pnpm-lock.yaml / package-lock.json)
-- 감지된 스크립트를 `CI Commands` 섹션에 반영
+**Step 1. Package Manager / Script Detection**
+- Read `package.json` → extract CI-related commands from `scripts` field
+- Determine package manager from lockfile (yarn.lock / pnpm-lock.yaml / package-lock.json)
+- Reflect detected scripts in `CI Commands` section
 
-**Step 2. 프레임워크 감지**
-- `package.json`의 dependencies/devDependencies에서 판별:
-  - `next` → Next.js (App Router/Pages Router는 `app/` 디렉토리 존재 여부로 판별)
+**Step 2. Framework Detection**
+- Determine from `package.json` dependencies/devDependencies:
+  - `next` → Next.js (App Router/Pages Router determined by presence of `app/` directory)
   - `nuxt` → Nuxt
   - `@sveltejs/kit` → SvelteKit
   - `vite` → Vite
-  - 등
-- `tsconfig.json` 유무 → TypeScript 여부
+  - etc.
+- Presence of `tsconfig.json` → TypeScript indicator
 
-**Step 3. 아키텍처 감지**
-- 디렉토리 구조 분석:
+**Step 3. Architecture Detection**
+- Analyze directory structure:
   - `src/app/`, `src/features/`, `src/entities/`, `src/shared/` → FSD
   - `src/domain/`, `src/application/`, `src/infrastructure/` → Clean Architecture
   - `src/modules/` → Modular
-  - 기타 → Layered
-- `tsconfig.json`의 `paths` → path_alias 추출
+  - Other → Layered
+- `paths` in `tsconfig.json` → extract path_alias
 
-**Step 4. 상태 관리 감지**
-- dependencies에서:
+**Step 4. State Management Detection**
+- From dependencies:
   - `zustand` → Zustand
   - `@reduxjs/toolkit` → Redux Toolkit
   - `@tanstack/react-query` → React Query
   - `swr` → SWR
   - `pinia` → Pinia
 
-**Step 5. 스타일링 / 테스팅 감지**
+**Step 5. Styling / Testing Detection**
 - `tailwindcss` → Tailwind CSS
 - `styled-components` → styled-components
-- `jest` / `vitest` / `playwright` → 각각 매핑
+- `jest` / `vitest` / `playwright` → mapped respectively
 
-**Step 6. 코드 스타일 감지**
-- `.eslintrc*` / `eslint.config.*` 확인 → 린트 규칙 파악
-- `tsconfig.json`의 `strict` → strict_mode
-- 기존 코드 샘플 2-3개 읽어 네이밍 패턴 확인
+**Step 6. Code Style Detection**
+- Check `.eslintrc*` / `eslint.config.*` → identify lint rules
+- `strict` in `tsconfig.json` → strict_mode
+- Read 2-3 existing code samples to verify naming patterns
 
-### 3. 설정 파일 생성
+### 3. Generate Config File
 
-1. `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.template.md`를 기반으로 설정 생성
-2. 자동 추론된 값으로 빈칸 채우기
-3. 추론 불가 항목은 템플릿 기본값 유지 + 주석으로 `# TODO: 프로젝트에 맞게 수정` 표시
-4. `.claude/selfish.config.md`에 저장
+1. Generate config based on `${CLAUDE_PLUGIN_ROOT}/templates/selfish.config.template.md`
+2. Fill in blanks with auto-inferred values
+3. For items that cannot be inferred: keep template defaults + mark with `# TODO: Adjust for your project`
+4. Save to `.claude/selfish.config.md`
 
-### 4. 최종 출력
+### 4. Scan Global CLAUDE.md and Detect Conflicts
+
+Read `~/.claude/CLAUDE.md` and analyze in the following order.
+
+#### Step 1. Check for Existing SELFISH Block
+
+Check for presence of `<!-- SELFISH:START -->` marker.
+- If found: replace with latest version (proceed to Step 3)
+- If not found: proceed to Step 2
+
+#### Step 2. Conflict Pattern Scan
+
+Search the entire CLAUDE.md for the patterns below. **Include content inside marker blocks (`<!-- *:START -->` ~ `<!-- *:END -->`) in the scan.**
+
+**A. Marker Block Detection**
+- Regex: `<!-- ([A-Z0-9_-]+):START -->` ~ `<!-- \1:END -->`
+- Record all found block names and line ranges
+
+**B. Agent Routing Conflict Detection**
+Find directives containing these keywords:
+- `executor`, `deep-executor` — conflicts with selfish:implement
+- `code-reviewer`, `quality-reviewer`, `style-reviewer`, `api-reviewer`, `security-reviewer`, `performance-reviewer` — conflicts with selfish:review
+- `debugger` (in agent routing context) — conflicts with selfish:debug
+- `planner` (in agent routing context) — conflicts with selfish:plan
+- `analyst`, `verifier` — conflicts with selfish:analyze
+- `test-engineer` — conflicts with selfish:test
+
+**C. Skill Routing Conflict Detection**
+Find these patterns:
+- Another tool's skill trigger table (e.g., tables like `| situation | skill |`)
+- `delegate to`, `route to`, `always use` + agent name combinations
+- Directives related to `auto-trigger`, `intent detection`, `intent-based routing`
+
+**D. Legacy selfish Block Detection**
+Previous versions without markers:
+- `## Selfish Auto-Trigger Rules`
+- `## Selfish Pipeline Integration`
+
+#### Step 3. Report Conflicts and User Choice
+
+**No conflicts found** → proceed directly to Step 4
+
+**Conflicts found** → report to user and present options:
 
 ```
-⚙️ 프로젝트 설정 완료
-├─ 파일: .claude/selfish.config.md
-├─ 프레임워크: {감지된 프레임워크}
-├─ 아키텍처: {감지된 스타일}
-├─ 패키지 매니저: {감지된 매니저}
-├─ 자동 추론: {추론된 항목 수}개
-├─ TODO: {수동 확인 필요 항목 수}개
-└─ 다음 단계: 설정 파일 확인 후 /selfish:spec 또는 /selfish:auto
+📋 CLAUDE.md Scan Results
+├─ Tool blocks found: {block name list} (lines {range})
+├─ Agent routing conflicts: {conflict count}
+│   e.g., "executor" (line XX) ↔ selfish:implement
+│   e.g., "code-reviewer" (line XX) ↔ selfish:review
+└─ Skill routing conflicts: {conflict count}
 ```
 
-## 주의사항
+Ask user:
 
-- **덮어쓰기 주의**: 기존 설정 파일이 있으면 반드시 사용자 확인.
-- **추론 한계**: 자동 추론은 최선의 추정. 사용자가 검토 후 수정해야 할 수 있음.
-- **프리셋 경로**: 프리셋은 플러그인 내 `templates/` 디렉토리에서 로드.
-- **`.claude/` 디렉토리**: 없으면 자동 생성.
+> "Directives overlapping with selfish were found. How would you like to proceed?"
+>
+> 1. **selfish-exclusive mode** — Adds selfish override comments to conflicting agent routing directives.
+>    Does not modify other tools' marker block contents; covers them with override rules in the SELFISH block.
+> 2. **coexistence mode** — Ignores conflicts and adds only the selfish block.
+>    Since it's at the end of the file, selfish directives will likely take priority, but may be non-deterministic on conflict.
+> 3. **manual cleanup** — Shows only the current conflict list and stops.
+>    User manually cleans up CLAUDE.md then runs init again.
+
+Based on choice:
+- **Option 1**: SELFISH block includes explicit override rules (activates `<conflict-overrides>` section from base template)
+- **Option 2**: SELFISH block added without overrides (base template as-is)
+- **Option 3**: Print conflict list only and abort without modifying CLAUDE.md
+
+#### Step 4. Inject SELFISH Block
+
+Add the following block at the **very end** of the file (later-positioned directives have higher priority).
+
+Replace existing SELFISH block if present, otherwise append.
+If legacy block (`## Selfish Auto-Trigger Rules` etc.) exists, remove it then append.
+
+```markdown
+<!-- SELFISH:START -->
+<!-- SELFISH:VERSION:1.2.0 -->
+<selfish-pipeline>
+IMPORTANT: For requests matching the selfish skill routing table below, always invoke the corresponding skill via the Skill tool. Do not substitute with other agents or tools.
+
+## Skill Routing
+
+| Intent | Skill | Trigger Keywords |
+|--------|-------|-----------------|
+| Implement/Modify | `selfish:implement` | add, modify, refactor, implement |
+| Review | `selfish:review` | review, check code, check PR |
+| Debug | `selfish:debug` | bug, error, broken, fix |
+| Test | `selfish:test` | test, coverage |
+| Design | `selfish:plan` | design, plan, how to implement |
+| Analyze | `selfish:analyze` | consistency, analyze, validate |
+| Spec | `selfish:spec` | spec, specification |
+| Tasks | `selfish:tasks` | break down tasks, decompose |
+| Research | `selfish:research` | research, investigate |
+| Ambiguous | `selfish:clarify` | auto-triggered when requirements are unclear |
+| Full auto | `selfish:auto` | do it automatically, auto-run |
+
+User-only (not auto-triggered — inform user on request):
+- `selfish:architect` — inform user when architecture review is requested
+- `selfish:security` — inform user when security scan is requested
+
+## Pipeline
+
+spec → plan → tasks → implement → test → review → analyze
+
+## Override Rules
+
+NEVER use executor, deep-executor, debugger, planner, analyst, verifier, test-engineer, code-reviewer, quality-reviewer, style-reviewer, api-reviewer, security-reviewer, performance-reviewer for tasks that a selfish skill covers above. ALWAYS invoke the selfish skill instead.
+</selfish-pipeline>
+<!-- SELFISH:END -->
+```
+
+**When Option 1 (selfish-exclusive mode) is selected**, the following `<conflict-overrides>` section is added:
+
+Add the following directly below the Override Rules:
+
+```markdown
+## Detected Conflicts
+
+This environment has other agent routing tools that overlap with selfish.
+The following rules were auto-generated to resolve conflicts:
+- The Skill Routing table above always takes priority over the agent routing directives of {detected tool blocks}
+- This block is at the end of the file and therefore has the highest priority
+```
+
+### 5. Final Output
+
+```
+Selfish Pipeline initialization complete
+├─ Config: .claude/selfish.config.md
+├─ Framework: {detected framework}
+├─ Architecture: {detected style}
+├─ Package Manager: {detected manager}
+├─ Auto-inferred: {inferred item count}
+├─ TODO: {items requiring manual review}
+├─ CLAUDE.md: {injected|updated|already current|user aborted}
+│   {if conflicts found} └─ Conflict resolution: {selfish-exclusive|coexistence|user cleanup}
+└─ Next step: /selfish:spec or /selfish:auto
+```
+
+## Notes
+
+- **Overwrite caution**: If config file already exists, always confirm with user.
+- **Inference limits**: Auto-inference is best-effort. User may need to review and adjust.
+- **Preset path**: Presets are loaded from the `templates/` directory inside the plugin.
+- **`.claude/` directory**: Created automatically if it does not exist.
+- **Global CLAUDE.md principles**:
+  - Never modify content outside the `<!-- SELFISH:START/END -->` markers
+  - Never modify content inside other tools' marker blocks (`<!-- *:START/END -->`)
+  - Always place the SELFISH block at the very end of the file (ensures priority)
+  - Conflict resolution is handled only via override rules (do not delete or modify other blocks)

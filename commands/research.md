@@ -1,7 +1,7 @@
 ---
 name: selfish:research
-description: "기술 리서치"
-argument-hint: "[리서치 주제]"
+description: "Technical research"
+argument-hint: "[research topic]"
 allowed-tools:
   - Read
   - Grep
@@ -13,97 +13,97 @@ allowed-tools:
 model: sonnet
 ---
 
-# /selfish:research — 기술 리서치
+# /selfish:research — Technical Research
 
-> 기술적 질문을 조사하고 결론을 정리한다.
-> 결과를 memory/research/{topic}.md에 영속 저장한다.
+> Investigates technical questions and summarizes conclusions.
+> Results are persisted to memory/research/{topic}.md.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (필수) 리서치 주제 (예: "Zustand v5 마이그레이션", "WebCodecs API 비교")
+- `$ARGUMENTS` — (required) research topic (e.g., "Zustand v5 migration", "WebCodecs API comparison")
 
-## 실행 절차
+## Execution Steps
 
-### 1. 주제 분석
+### 1. Analyze Topic
 
-`$ARGUMENTS`에서 추출:
-- **핵심 질문**: 무엇을 알아야 하는가?
-- **컨텍스트**: 왜 필요한가? (현재 프로젝트와의 관련성)
-- **범위**: 깊이 vs 넓이 (특정 라이브러리 비교? 전반적 기술 동향?)
+Extract from `$ARGUMENTS`:
+- **Core question**: What do we need to know?
+- **Context**: Why is it needed? (relevance to the current project)
+- **Scope**: Depth vs breadth (specific library comparison? general technology trends?)
 
-### 2. 기존 리서치 확인
+### 2. Check Existing Research
 
-`memory/research/` 디렉토리에서 관련 기존 리서치 확인:
-- 있으면: 기존 내용 로드 후 업데이트 필요 여부 판단
-- 없으면: 신규 리서치 진행
+Check `memory/research/` directory for related prior research:
+- If found: load existing content and decide whether an update is needed
+- If not found: proceed with new research
 
-### 3. 정보 수집
+### 3. Gather Information
 
-Agent Teams 활용 — 독립적 조사를 병렬 수행:
+Use Agent Teams — run independent investigations in parallel:
 
 ```
-Task("WebSearch: {주제} 공식 문서", subagent_type: general-purpose)
-Task("코드베이스: 현재 사용 패턴 분석", subagent_type: Explore)
+Task("WebSearch: {topic} official docs", subagent_type: general-purpose)
+Task("Codebase: analyze current usage patterns", subagent_type: Explore)
 ```
 
-정보원 우선순위:
-1. **공식 문서** (WebSearch/WebFetch)
-2. **코드베이스** (현재 프로젝트의 기존 패턴)
-3. **커뮤니티** (GitHub Issues, 블로그)
+Source priority:
+1. **Official documentation** (WebSearch/WebFetch)
+2. **Codebase** (existing patterns in the current project)
+3. **Community** (GitHub Issues, blogs)
 
-### 4. 결론 정리
+### 4. Summarize Conclusions
 
 ```markdown
-# Research: {주제}
+# Research: {topic}
 
-> 날짜: {YYYY-MM-DD}
-> 관련 기능: {관련 feature 또는 "일반"}
+> Date: {YYYY-MM-DD}
+> Related feature: {related feature or "general"}
 
-## 핵심 질문
-{무엇을 알아야 했는가}
+## Core Question
+{what we needed to know}
 
-## 발견사항
+## Findings
 
-### {소주제 1}
-{내용}
-**출처**: {URL} ({날짜} 확인)
+### {subtopic 1}
+{content}
+**Source**: {URL} (verified {date})
 
-### {소주제 2}
-{내용}
+### {subtopic 2}
+{content}
 
-## 옵션 비교 (해당 시)
-| 기준 | {옵션A} | {옵션B} | {옵션C} |
-|------|---------|---------|---------|
-| {기준1} | {평가} | {평가} | {평가} |
-| {기준2} | {평가} | {평가} | {평가} |
+## Option Comparison (if applicable)
+| Criterion | {OptionA} | {OptionB} | {OptionC} |
+|-----------|-----------|-----------|-----------|
+| {criterion1} | {evaluation} | {evaluation} | {evaluation} |
+| {criterion2} | {evaluation} | {evaluation} | {evaluation} |
 
-## 결론
-**추천**: {선택 또는 결론}
-**근거**: {핵심 이유}
-**주의사항**: {함정 또는 제약}
+## Conclusion
+**Recommendation**: {choice or conclusion}
+**Rationale**: {key reason}
+**Caveats**: {pitfalls or constraints}
 
-## 프로젝트 적용
-{이 프로젝트에서 어떻게 적용할 수 있는지}
+## Project Application
+{how this can be applied in the current project}
 ```
 
-### 5. 저장
+### 5. Save
 
-- `memory/research/{topic-kebab-case}.md`에 저장
-- 기존 파일이면 업데이트 (날짜 갱신)
+- Save to `memory/research/{topic-kebab-case}.md`
+- If the file already exists, update it (refresh the date)
 
-### 6. 최종 출력
+### 6. Final Output
 
 ```
-🔬 리서치 완료
-├─ 주제: {주제}
-├─ 저장: memory/research/{filename}.md
-├─ 결론: {한 줄 요약}
-└─ 출처: {주요 출처 수}개
+Research complete
+├─ Topic: {topic}
+├─ Saved: memory/research/{filename}.md
+├─ Conclusion: {one-line summary}
+└─ Sources: {number of key sources}
 ```
 
-## 주의사항
+## Notes
 
-- **현재 날짜 기준**: Knowledge cutoff에 의존하지 않고 WebSearch로 최신 정보 확인.
-- **출처 필수**: 모든 기술적 주장에 출처 명시.
-- **프로젝트 맥락**: 일반적 리서치가 아닌, 이 프로젝트에 적용 가능한 결론 도출.
-- **영속 저장**: memory/research/에 저장하여 다른 세션에서 재활용 가능.
+- **Current date basis**: Use WebSearch to verify up-to-date information rather than relying on knowledge cutoff.
+- **Sources required**: Cite sources for all technical claims.
+- **Project context**: Derive conclusions applicable to this project, not generic research.
+- **Persistent storage**: Save to memory/research/ for reuse across sessions.

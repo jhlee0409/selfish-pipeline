@@ -1,7 +1,7 @@
 ---
 name: selfish:implement
-description: "코드 구현 실행"
-argument-hint: "[태스크 ID 또는 Phase 지정]"
+description: "Execute code implementation"
+argument-hint: "[task ID or phase specification]"
 hooks:
   PostToolUse:
     - matcher: "Edit|Write"
@@ -14,133 +14,180 @@ hooks:
           command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
 ---
 
-# /selfish:implement — 코드 구현 실행
+# /selfish:implement — Execute Code Implementation
 
-> tasks.md의 태스크를 Phase별로 실행한다.
-> 병렬 가능한 태스크([P])는 Agent Teams로 동시 실행하고, Phase 완료 시 CI 게이트를 통과해야 한다.
+> Executes tasks from tasks.md phase by phase.
+> Uses native task orchestration with dependency-aware scheduling. Swarm mode activates for >5 parallel tasks per phase.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 특정 태스크 ID 또는 Phase 지정 (예: `T005`, `phase3`)
+- `$ARGUMENTS` — (optional) Specific task ID or phase to run (e.g., `T005`, `phase3`)
 
-## 프로젝트 설정 (자동 로드)
+## Project Config (auto-loaded)
 
-!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md not found. Create it with /selfish:init."`
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
+**Always** read `.claude/selfish.config.md` first (read manually if not auto-loaded above). Abort if config file is missing.
 
-## 실행 절차
+## Execution Steps
 
 ### 0. Safety Snapshot
 
-구현 시작 전 **롤백 포인트**를 생성한다:
+Before starting implementation, create a **rollback point**:
 
 ```bash
 git tag -f selfish/pre-implement
 ```
 
-- 실패 시 `git reset --hard selfish/pre-implement`로 즉시 롤백 가능
-- 태그는 다음 `/selfish:implement` 실행 시 자동 덮어씌워짐
-- `/selfish:auto` 파이프라인 내에서 실행 시 `selfish/pre-auto` 태그가 이미 존재하므로 생략
+- On failure: immediately rollback with `git reset --hard selfish/pre-implement`
+- Tag is automatically overwritten on the next `/selfish:implement` run
+- Skip if running inside `/selfish:auto` pipeline (the `selfish/pre-auto` tag already exists)
 
-### 1. 컨텍스트 로드
+### 1. Load Context
 
-1. **현재 브랜치** → `BRANCH_NAME`
-2. `specs/{feature}/` 에서 다음 파일 로드:
-   - **tasks.md** (필수) — 없으면 중단: "tasks.md가 없습니다. `/selfish:tasks`를 먼저 실행하세요."
-   - **plan.md** (필수) — 없으면 중단
-   - **spec.md** (참고용)
-   - **research.md** (있으면)
-3. tasks.md 파싱:
-   - 각 태스크의 ID, [P] 마커, [US*] 라벨, 설명, 파일 경로 추출
-   - Phase별 그룹화
-   - 이미 완료된 `[x]` 태스크 식별
+1. **Current branch** → `BRANCH_NAME`
+2. Load the following files from `specs/{feature}/`:
+   - **tasks.md** (required) — abort if missing: "tasks.md not found. Run `/selfish:tasks` first."
+   - **plan.md** (required) — abort if missing
+   - **spec.md** (for reference)
+   - **research.md** (if present)
+3. Parse tasks.md:
+   - Extract each task's ID, [P] marker, [US*] label, description, file paths, `depends:` list
+   - Group by phase
+   - Build dependency graph (validate DAG — abort if circular)
+   - Identify already-completed `[x]` tasks
 
-### 2. 진행 상태 확인
+### 2. Check Progress
 
-- 완료된 태스크가 있으면 상태 표시:
+- If completed tasks exist, display status:
   ```
-  진행 상태: {완료}/{전체} ({퍼센트}%)
-  다음: {미완료 첫 태스크 ID} - {설명}
+  Progress: {completed}/{total} ({percent}%)
+  Next: {first incomplete task ID} - {description}
   ```
-- `$ARGUMENTS`로 특정 태스크/Phase 지정 시 해당 항목부터 시작
+- If a specific task/phase is specified via `$ARGUMENTS`, start from that item
 
-### 3. Phase별 실행
+### 3. Phase-by-Phase Execution
 
-각 Phase를 순서대로 실행한다:
+Execute each phase in order. Choose the orchestration mode based on the number of [P] tasks in the phase:
 
-#### Phase 실행 규칙
+#### Mode Selection
 
-1. **순차 태스크** (P 마커 없음):
-   - 하나씩 순서대로 실행
-   - 각 태스크 시작 시: `▶ {ID}: {설명}`
-   - 완료 시: `✓ {ID} 완료`
+| [P] tasks in phase | Mode | Strategy |
+|---------------------|------|----------|
+| 0 | Sequential | Execute tasks one by one |
+| 1–5 | Parallel Batch | Launch Task() calls in parallel (current batch approach) |
+| 6+ | Swarm | Create task pool → spawn worker agents that self-organize |
 
-2. **병렬 태스크** ([P] 마커):
-   - 같은 Phase 내 연속된 [P] 태스크를 **배치 단위**(최대 5개)로 그룹화
-   - **파일 겹침 없음** 확인 (겹치면 순차로 강등)
-   - Task 도구로 병렬 서브에이전트 위임:
-     ```
-     TaskCreate({
-       description: "{ID}: {설명}",
-       prompt: "다음 태스크를 구현하세요:\n\n## 태스크\n{설명}\n\n## 관련 파일\n{파일 경로}\n\n## Plan 컨텍스트\n{plan.md에서 관련 섹션}\n\n## 코드 스타일\n- {config.code_style} 규칙\n- {config.architecture} 규칙 준수\n- CLAUDE.md 및 selfish.config.md 규칙 따르기",
-       subagent_type: "general-purpose"
-     })
-     ```
-   - 모든 배치 완료 대기 후 다음 배치/Phase 진행
+#### Sequential Mode (no P marker)
 
-3. **의존성 준수**:
-   - 태스크 설명에 `after T{ID}` 또는 `requires T{ID}`가 있으면 해당 태스크 완료 후 실행
-   - Phase 순서는 반드시 지킴
+- Execute one at a time in order
+- On task start: `▶ {ID}: {description}`
+- On completion: `✓ {ID} complete`
 
-#### Phase 완료 게이트 (3단계)
+#### Parallel Batch Mode (1–5 [P] tasks)
 
-> **반드시** `docs/phase-gate-protocol.md`를 먼저 읽고 3단계(CI 게이트 → Mini-Review → Auto-Checkpoint)를 순차 수행한다.
-> 게이트 미통과 시 다음 Phase 진입 불가. 3회 CI 실패 시 사용자에게 보고 후 중단.
+- Verify **no file overlap** (downgrade to sequential if overlapping)
+- Register all phase tasks via TaskCreate:
+  ```
+  TaskCreate({ subject: "T003: Create UserService", description: "..." })
+  TaskCreate({ subject: "T004: Create AuthService", description: "..." })
+  ```
+- Set up dependencies via TaskUpdate:
+  ```
+  TaskUpdate({ taskId: "T004", addBlockedBy: ["T002"] })  // if T004 depends on T002
+  ```
+- Launch parallel sub-agents for unblocked [P] tasks:
+  ```
+  Task("T003: Create UserService", subagent_type: "general-purpose",
+    prompt: "Implement the following task:\n\n## Task\n{description}\n\n## Related Files\n{file paths}\n\n## Plan Context\n{relevant section from plan.md}\n\n## Rules\n- {config.code_style}\n- {config.architecture}\n- Follow CLAUDE.md and selfish.config.md")
+  Task("T004: Create AuthService", subagent_type: "general-purpose", ...)
+  ```
+- Wait for all to complete → mark TaskUpdate(status: "completed")
+- Any newly-unblocked tasks from dependency resolution → launch next batch
 
-### 4. 태스크 실행 패턴
+#### Swarm Mode (6+ [P] tasks)
 
-각 태스크에서:
+When a phase has more than 5 parallelizable tasks, use the **self-organizing swarm pattern**:
 
-1. **파일 읽기**: 수정할 파일이 있으면 반드시 먼저 읽기
-2. **구현**: plan.md의 설계를 따라 코드 작성
-3. **타입 확인**: 새 코드가 TypeScript strict 모드에 맞는지 확인
-4. **tasks.md 업데이트**: 완료된 태스크를 `[x]`로 마크
+1. **Create task pool**: Register ALL phase tasks via TaskCreate with full descriptions
+2. **Set up dependency graph**: Use TaskUpdate(addBlockedBy) for every `depends:` declaration
+3. **Spawn N worker agents** (N = min(5, unblocked task count)):
+   ```
+   Task("Swarm Worker 1", subagent_type: "general-purpose",
+     prompt: "You are a swarm worker. Your job:
+     1. Call TaskList to find available tasks (status: pending, no blockedBy, no owner)
+     2. Claim one by calling TaskUpdate(taskId, status: in_progress, owner: worker-1)
+     3. Read TaskGet(taskId) for full description
+     4. Implement the task following the plan and code style rules
+     5. Mark complete: TaskUpdate(taskId, status: completed)
+     6. Repeat from step 1 until no tasks remain
+     7. Exit when TaskList shows no pending tasks
+
+     ## Rules
+     - {config.code_style} and {config.architecture}
+     - Always read files before modifying
+     - Follow CLAUDE.md and selfish.config.md")
+   ```
+4. **Wait for all workers to exit** — workers naturally terminate when the pool is empty
+5. **Verify**: check TaskList for any incomplete tasks → re-spawn workers if needed
+
+> Swarm workers self-balance: fast workers claim more tasks. No batch boundaries needed.
+
+#### Dependency Resolution
+
+- Tasks with `depends: [T001, T002]` are registered via TaskUpdate(addBlockedBy: ["T001", "T002"])
+- When a dependency completes, blocked tasks are automatically unblocked
+- Phase order is always respected — all tasks in Phase N must complete before Phase N+1 begins
+
+#### Phase Completion Gate (3 steps)
+
+> **Always** read `docs/phase-gate-protocol.md` first and perform the 3 steps (CI gate → Mini-Review → Auto-Checkpoint) in order.
+> Cannot advance to the next phase without passing the gate. Abort and report to user after 3 consecutive CI failures.
+
+### 4. Task Execution Pattern
+
+For each task:
+
+1. **Read files**: always read files before modifying them
+2. **Implement**: write code following the design in plan.md
+3. **Type check**: verify new code conforms to TypeScript strict mode
+4. **Update tasks.md**: mark completed tasks as `[x]`
    ```markdown
-   - [x] T001 {설명}  ← 완료
-   - [ ] T002 {설명}  ← 미완료
+   - [x] T001 {description}  ← complete
+   - [ ] T002 {description}  ← incomplete
    ```
 
-### 5. 최종 검증
+### 5. Final Verification
 
-모든 태스크 완료 후:
+After all tasks are complete:
 
 ```bash
 {config.ci}
 ```
 
-- **통과**: 최종 보고서 출력
-- **실패**: 에러 수정 시도 (최대 3회)
+- **Pass**: output final report
+- **Fail**: attempt to fix errors (max 3 attempts)
 
-### 6. 최종 출력
+### 6. Final Output
 
 ```
-🚀 구현 완료
-├─ 태스크: {완료}/{전체}
-├─ Phase: {Phase 수}개 완료
-├─ CI: ✓ {config.ci} 통과
-├─ 변경 파일: {파일 수}개
-└─ 다음 단계: /selfish:review (선택)
+Implementation complete
+├─ Tasks: {completed}/{total}
+├─ Phases: {phase count} complete
+├─ CI: {config.ci} passed
+├─ Changed files: {file count}
+└─ Next step: /selfish:review (optional)
 ```
 
-## 주의사항
+## Notes
 
-- **기존 코드 우선 읽기**: 수정 전 반드시 파일 내용 확인. 맹목적 코드 생성 금지.
-- **과도한 변경 금지**: plan.md에 없는 리팩토링/개선 하지 않기.
-- **아키텍처 준수**: {config.architecture} 규칙 준수.
-- **{config.ci} 게이트**: Phase 완료 시 반드시 통과. 우회 금지.
-- **Agent Teams 배치**: 최대 5개. 파일 겹침 절대 금지.
-- **오류 시**: 무한 루프 방지. 3회 시도 후 사용자에게 상황 보고.
-- **tasks.md 실시간 업데이트**: 태스크 완료마다 체크박스 마크.
+- **Read existing code first**: always read file contents before modifying. Do not blindly generate code.
+- **No over-modification**: do not refactor or improve beyond what is in plan.md.
+- **Architecture compliance**: follow {config.architecture} rules.
+- **{config.ci} gate**: must pass on phase completion. Do not bypass.
+- **Swarm workers**: max 5 concurrent. File overlap is strictly prohibited between parallel tasks.
+- **On error**: prevent infinite loops. Report to user after 3 attempts.
+- **Real-time tasks.md updates**: mark checkbox on each task completion.
+- **Mode selection is automatic**: do not manually override. Sequential for non-[P], batch for ≤5, swarm for 6+.

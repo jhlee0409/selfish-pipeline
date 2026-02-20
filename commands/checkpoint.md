@@ -1,7 +1,7 @@
 ---
 name: selfish:checkpoint
-description: "세션 상태 저장"
-argument-hint: "[체크포인트 메시지]"
+description: "Save session state"
+argument-hint: "[checkpoint message]"
 disable-model-invocation: true
 model: haiku
 allowed-tools:
@@ -11,78 +11,78 @@ allowed-tools:
   - Bash
 ---
 
-# /selfish:checkpoint — 세션 상태 저장
+# /selfish:checkpoint — Save Session State
 
-> 현재 작업 상태를 memory/checkpoint.md에 저장한다.
-> 세션 중단 시에도 진행 상황을 보존한다.
+> Saves the current work state to memory/checkpoint.md.
+> Preserves progress even if the session is interrupted.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 체크포인트 메시지 (예: "Phase 2 완료, UI 구현 시작 전")
+- `$ARGUMENTS` — (optional) checkpoint message (e.g., "Phase 2 complete, before starting UI implementation")
 
-## 실행 절차
+## Execution Steps
 
-### 1. 현재 상태 수집
+### 1. Collect Current State
 
-자동으로 수집:
+Collect automatically:
 
-1. **Git 상태**:
-   - 현재 브랜치
-   - 마지막 커밋 해시 + 메시지
-   - 변경된 파일 목록 (`git status --short`)
-2. **활성 Feature**:
-   - `specs/` 하위 디렉토리 확인
-   - 각 feature의 진행 상태 (spec만? plan까지? tasks까지? 구현 중?)
-3. **Tasks 진행률**:
-   - tasks.md가 있으면 `[x]`/`[ ]` 카운트
-4. **현재 작업 컨텍스트**:
-   - `$ARGUMENTS` 메시지
-   - 최근 수정한 파일 (git diff --name-only)
+1. **Git status**:
+   - Current branch
+   - Last commit hash + message
+   - List of changed files (`git status --short`)
+2. **Active Features**:
+   - Check subdirectories under `specs/`
+   - Progress state of each feature (spec only? through plan? through tasks? implementing?)
+3. **Tasks Progress**:
+   - If tasks.md exists, count `[x]`/`[ ]` items
+4. **Current Work Context**:
+   - `$ARGUMENTS` message
+   - Recently modified files (`git diff --name-only`)
 
-### 2. 체크포인트 저장
+### 2. Save Checkpoint
 
-`memory/checkpoint.md`에 **덮어쓰기** (최신 상태만 유지):
+**Overwrite** `memory/checkpoint.md` (keep only the latest state):
 
 ```markdown
 # Session Checkpoint
 
 > Saved: {YYYY-MM-DD HH:mm}
-> Branch: {브랜치명}
-> Commit: {해시} — {메시지}
+> Branch: {branch name}
+> Commit: {hash} — {message}
 
-## 메시지
-{$ARGUMENTS 또는 "자동 체크포인트"}
+## Message
+{$ARGUMENTS or "automatic checkpoint"}
 
-## 활성 Feature
-| Feature | 상태 | 진행률 |
-|---------|------|--------|
-| {이름} | {spec/plan/tasks/implementing/done} | {N/M tasks} |
+## Active Features
+| Feature | Status | Progress |
+|---------|--------|----------|
+| {name} | {spec/plan/tasks/implementing/done} | {N/M tasks} |
 
-## 미완료 작업
-{구체적인 다음 단계}
+## Incomplete Work
+{concrete next steps}
 
-## 변경된 파일
+## Changed Files
 ```
-{git status --short 결과}
-```
-
-## 컨텍스트 노트
-{현재 작업에서 기억해야 할 사항}
+{git status --short output}
 ```
 
-### 3. 최종 출력
-
-```
-💾 체크포인트 저장
-├─ 시간: {HH:mm}
-├─ 브랜치: {브랜치명}
-├─ 활성 Feature: {개수}개
-├─ 진행률: {완료 태스크}/{전체 태스크}
-└─ 복원: /selfish:resume
+## Context Notes
+{things to remember about the current work}
 ```
 
-## 주의사항
+### 3. Final Output
 
-- **덮어쓰기**: 항상 최신 상태만 유지. 히스토리는 git이 담당.
-- **자동 수집**: 가능한 한 자동으로 정보 수집. 사용자 입력 최소화.
-- **간결하게**: 불필요한 상세 정보 제외. 복원에 필요한 것만.
+```
+Checkpoint saved
+├─ Time: {HH:mm}
+├─ Branch: {branch name}
+├─ Active features: {count}
+├─ Progress: {completed tasks}/{total tasks}
+└─ Restore: /selfish:resume
+```
+
+## Notes
+
+- **Overwrite**: Always keep only the latest state. Git handles history.
+- **Auto-collect**: Collect information automatically as much as possible. Minimize user input.
+- **Keep it concise**: Exclude unnecessary details. Only what is needed to restore.

@@ -1,6 +1,6 @@
 ---
 name: selfish:resume
-description: "세션 복원"
+description: "Restore session"
 argument-hint: ""
 disable-model-invocation: true
 model: haiku
@@ -9,72 +9,72 @@ allowed-tools:
   - Glob
 ---
 
-# /selfish:resume — 세션 복원
+# /selfish:resume — Restore Session
 
-> memory/checkpoint.md에서 이전 세션 상태를 복원하고 작업을 재개한다.
+> Restores the previous session state from memory/checkpoint.md and resumes work.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 없음
+- `$ARGUMENTS` — (optional) none
 
-## 실행 절차
+## Execution Steps
 
-### 1. 체크포인트 로드
+### 1. Load Checkpoint
 
-`memory/checkpoint.md` 읽기:
-- 없으면: "저장된 체크포인트가 없습니다." 출력 후 **중단**
-- 있으면: 전체 내용 파싱
+Read `memory/checkpoint.md`:
+- If not found: output "No saved checkpoint found." then **stop**
+- If found: parse the full contents
 
-### 2. 환경 검증
+### 2. Validate Environment
 
-체크포인트의 상태와 현재 환경을 비교:
+Compare the checkpoint state against the current environment:
 
-1. **브랜치 확인**: 체크포인트의 브랜치와 현재 브랜치가 같은가?
-   - 다르면: 경고 + 전환 제안
-2. **파일 상태**: 체크포인트 이후 변경된 파일이 있는가?
-   - `git log {체크포인트 해시}..HEAD --oneline` 으로 새 커밋 확인
-3. **Feature 디렉토리**: specs/{feature}/ 가 여전히 존재하는가?
+1. **Branch check**: Does the checkpoint branch match the current branch?
+   - If different: warn + suggest switching
+2. **File state**: Have any files changed since the checkpoint?
+   - Check for new commits with `git log {checkpoint hash}..HEAD --oneline`
+3. **Feature directory**: Does specs/{feature}/ still exist?
 
-### 3. 상태 보고
+### 3. Report State
 
 ```markdown
-## 세션 복원
+## Session Restore
 
-### 이전 체크포인트
-- **저장 시간**: {시간}
-- **메시지**: {체크포인트 메시지}
-- **브랜치**: {브랜치} {(현재와 동일 ✓ / 다름 ⚠)}
+### Previous Checkpoint
+- **Saved at**: {time}
+- **Message**: {checkpoint message}
+- **Branch**: {branch} {(matches current ✓ / differs ⚠)}
 
-### 활성 Feature
-| Feature | 상태 | 진행률 |
-|---------|------|--------|
-| {이름} | {상태} | {진행률} |
+### Active Features
+| Feature | Status | Progress |
+|---------|--------|----------|
+| {name} | {status} | {progress} |
 
-### 체크포인트 이후 변경
-{새 커밋이 있으면 목록, 없으면 "변경 없음"}
+### Changes Since Checkpoint
+{list of new commits if any, or "No changes"}
 
-### 미완료 작업
-{checkpoint.md의 미완료 작업 목록}
+### Incomplete Work
+{incomplete work list from checkpoint.md}
 
-### 추천 다음 단계
-{상태에 따른 추천 커맨드}
-- tasks 진행 중 → `/selfish:implement` 재개
-- plan 완료 → `/selfish:tasks`
-- spec만 → `/selfish:plan`
+### Recommended Next Steps
+{recommended commands based on state}
+- Tasks in progress → resume `/selfish:implement`
+- Plan complete → `/selfish:tasks`
+- Spec only → `/selfish:plan`
 ```
 
-### 4. 최종 출력
+### 4. Final Output
 
 ```
-🔄 세션 복원 완료
-├─ 체크포인트: {시간}
-├─ Feature: {이름} ({상태})
-├─ 진행률: {완료}/{전체}
-└─ 추천: {다음 커맨드}
+Session restored
+├─ Checkpoint: {time}
+├─ Feature: {name} ({status})
+├─ Progress: {completed}/{total}
+└─ Recommended: {next command}
 ```
 
-## 주의사항
+## Notes
 
-- **읽기 전용**: 환경을 변경하지 않음 (브랜치 전환도 제안만, 실행은 사용자 확인 후).
-- **불일치 경고**: 체크포인트와 현재 환경이 다르면 명확히 경고.
-- **컨텍스트 복원**: 체크포인트의 "컨텍스트 노트"를 반드시 표시하여 기억 보조.
+- **Read-only**: Does not modify the environment (branch switching is suggested only; user must confirm).
+- **Mismatch warning**: Clearly warn if checkpoint and current environment differ.
+- **Context restore**: Always display the "Context Notes" from the checkpoint to aid memory.

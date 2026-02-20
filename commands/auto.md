@@ -1,7 +1,7 @@
 ---
 name: selfish:auto
-description: "Full Auto 파이프라인"
-argument-hint: "[기능 설명 자연어 텍스트]"
+description: "Full auto pipeline"
+argument-hint: "[feature description in natural language]"
 hooks:
   PostToolUse:
     - matcher: "Edit|Write"
@@ -14,233 +14,256 @@ hooks:
           command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
 ---
 
-# /selfish:auto — Full Auto 파이프라인
+# /selfish:auto — Full Auto Pipeline
 
-> 기능 설명 하나로 spec → plan → tasks → implement → review → clean을 완전 자동 실행한다.
-> 중간 확인 없음. clarify/analyze 스킵. Critic Loop는 각 단계에서 자동 수행.
+> Runs spec → plan → tasks → implement → review → clean fully automatically from a single feature description.
+> No intermediate confirmation. clarify/analyze are skipped. Critic Loop is performed automatically at each phase.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (필수) 기능 설명 자연어 텍스트
+- `$ARGUMENTS` — (required) Feature description in natural language
 
-## 프로젝트 설정 (자동 로드)
+## Project Config (auto-loaded)
 
-!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md not found. Create it with /selfish:init."`
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 이 파일에 정의된 값을 아래에서 `{config.*}`로 참조한다:
-- `{config.ci}` — 전체 CI 명령어
-- `{config.gate}` — Phase 게이트 명령어
-- `{config.architecture}` — 아키텍처 스타일 및 규칙
-- `{config.framework}` — 프레임워크 특성 (서버/클라이언트 경계 등)
-- `{config.code_style}` — 코드 스타일 규칙
-- `{config.risks}` — 프로젝트 고유 위험 패턴
-- `{config.mini_review}` — Mini-Review 점검 항목
+**Always** read `.claude/selfish.config.md` first (read manually if not auto-loaded above). Values defined in this file are referenced below as `{config.*}`:
+- `{config.ci}` — full CI command
+- `{config.gate}` — phase gate command
+- `{config.architecture}` — architecture style and rules
+- `{config.framework}` — framework characteristics (server/client boundary etc.)
+- `{config.code_style}` — code style rules
+- `{config.risks}` — project-specific risk patterns
+- `{config.mini_review}` — Mini-Review checklist items
 
-설정 파일이 없으면: "`.claude/selfish.config.md`가 없습니다. `/selfish:init`으로 프로젝트 설정을 생성하세요." 출력 후 **중단**.
-
----
-
-## Critic Loop 규칙 (전 Phase 공통)
-
-> **반드시** `docs/critic-loop-rules.md`를 먼저 읽고 따른다.
-> 핵심: 기준당 최소 1개 우려사항 + 매 회차 Adversarial 실패 시나리오 필수 + 정량 근거 필수. "PASS" 한 단어 금지.
+If config file is missing: print "`.claude/selfish.config.md` not found. Create project config with `/selfish:init`." then **abort**.
 
 ---
 
-## 실행 절차
+## Critic Loop Rules (common to all phases)
 
-### Phase 0: 준비
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+> Core: minimum 1 concern per criterion + mandatory Adversarial failure scenario each pass + quantitative evidence required. "PASS" as a single word is prohibited.
 
-1. `$ARGUMENTS` 비어있으면 → "기능 설명을 입력하세요." 중단
-2. 현재 브랜치 확인 → `BRANCH_NAME`
-3. Feature 이름 결정 (키워드 2-3개 → kebab-case)
-4. **Pipeline Flag 활성화** (Hook 연동):
+---
+
+## Execution Steps
+
+### Phase 0: Preparation
+
+1. If `$ARGUMENTS` is empty → print "Please enter a feature description." and abort
+2. Check current branch → `BRANCH_NAME`
+3. Determine feature name (2-3 keywords → kebab-case)
+4. **Activate Pipeline Flag** (hook integration):
    ```bash
    "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" start {feature}
    ```
-   - Safety Snapshot 자동 생성 (`selfish/pre-auto` git tag)
-   - Stop Gate Hook 활성화 (CI 미통과 시 응답 종료 차단)
-   - 변경 파일 추적 시작
-5. `specs/{feature}/` 디렉토리 생성 → **경로를 `PIPELINE_ARTIFACT_DIR`로 기록** (Clean 스코프용)
-6. 시작 알림:
+   - Safety Snapshot created automatically (`selfish/pre-auto` git tag)
+   - Stop Gate Hook activated (blocks response termination on CI failure)
+   - File change tracking started
+5. Create `specs/{feature}/` directory → **record path as `PIPELINE_ARTIFACT_DIR`** (for Clean scope)
+6. Start notification:
    ```
-   🚀 Auto 파이프라인 시작: {feature}
+   Auto pipeline started: {feature}
    ├─ 1/6 Spec → 2/6 Plan → 3/6 Tasks → 4/6 Implement → 5/6 Review → 6/6 Clean
-   └─ 예상: 전체 자동 실행 (중간 확인 없음)
+   └─ Running fully automatically (no intermediate confirmation)
    ```
 
 ### Phase 1: Spec (1/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase spec`
 
-`/selfish:spec`의 로직을 인라인 실행:
+Execute `/selfish:spec` logic inline:
 
-1. 코드베이스에서 관련 코드 탐색 (Glob, Grep) — `{config.architecture}` 계층별 탐색
-2. `specs/{feature}/spec.md` 생성
-3. `[NEEDS CLARIFICATION]` 항목은 **최선의 추정으로 자동 해결** (clarify 스킵)
-   - 추정한 항목에 `[AUTO-RESOLVED]` 태그 추가
-4. **Critic Loop 1회** (Critic Loop 규칙 준수):
-   - COMPLETENESS: 모든 User Story에 수용 시나리오가 있는가? 누락된 요구사항은?
-   - MEASURABILITY: 성공 기준이 주관적이지 않고 측정 가능한가? **수치 목표가 있다면 근거를 제시했는가?**
-   - INDEPENDENCE: 구현 세부사항(코드, 라이브러리명)이 섞이지 않았는가?
-   - EDGE_CASES: 최소 2개 이상 식별했는가? 빠진 경계 조건은?
-   - FAIL 항목 → 자동 수정 후 spec.md 업데이트
-5. 진행 표시: `✓ 1/6 Spec 완료 (US: {N}개, FR: {N}개, Critic: {FAIL수}건 수정)`
+1. Explore codebase for related code (Glob, Grep) — explore by `{config.architecture}` layer
+2. Create `specs/{feature}/spec.md`
+3. `[NEEDS CLARIFICATION]` items are **auto-resolved with best-guess** (clarify skipped)
+   - Tag auto-resolved items with `[AUTO-RESOLVED]`
+4. **Critic Loop 1 pass** (follow Critic Loop rules):
+   - COMPLETENESS: does every User Story have acceptance scenarios? Any missing requirements?
+   - MEASURABILITY: are success criteria measurable, not subjective? **Is quantitative evidence provided for numerical targets?**
+   - INDEPENDENCE: are implementation details (code, library names) absent from the spec?
+   - EDGE_CASES: are at least 2 identified? Any missing boundary conditions?
+   - FAIL items → auto-fix and update spec.md
+5. Progress: `✓ 1/6 Spec complete (US: {N}, FR: {N}, Critic: {FAIL count} fixed)`
 
 ### Phase 2: Plan (2/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase plan`
 
-`/selfish:plan`의 로직을 인라인 실행:
+Execute `/selfish:plan` logic inline:
 
-1. spec.md 로드
-2. 기술적 불확실성 있으면 → WebSearch/코드탐색으로 자동 해결 → research.md 생성
-3. `specs/{feature}/plan.md` 생성
-   - **수치 목표(줄 수 등)를 설정할 경우, 구조 분석 기반 추정치를 함께 기술** (예: "함수 A ~50줄, 컴포넌트 B ~80줄 → 합계 ~130줄")
-4. **Critic Loop 3회** (Critic Loop 규칙 준수):
-   - 기준: COMPLETENESS, FEASIBILITY, ARCHITECTURE, RISK, PRINCIPLES
-   - **RISK 기준 필수 점검 항목**:
-     - `{config.ci}` 실패 시나리오를 **최소 3가지** 열거하고 대응 방안 기술
-     - `{config.risks}`의 모든 패턴을 하나씩 점검
-     - `{config.framework}` 특성 (서버/클라이언트 경계 등) 고려
-   - **ARCHITECTURE 기준**: 이동/생성되는 파일의 import 경로를 구체적으로 기술하고 `{config.architecture}` 규칙 위반 여부를 사전 검증
-   - 매 회차마다 이전 회차에서 놓친 점을 **명시적으로 탐색** ("2회차: 1회차에서 {X}를 놓쳤다. 추가 검토: ...")
-5. 진행 표시: `✓ 2/6 Plan 완료 (Critic: {총 FAIL 수정}건, 파일: {N}개)`
+1. Load spec.md
+2. If technical uncertainties exist → auto-resolve via WebSearch/code exploration → create research.md
+3. Create `specs/{feature}/plan.md`
+   - **If setting numerical targets (line counts etc.), include structure-analysis-based estimates** (e.g., "function A ~50 lines, component B ~80 lines → total ~130 lines")
+4. **Critic Loop 3 passes** (follow Critic Loop rules):
+   - Criteria: COMPLETENESS, FEASIBILITY, ARCHITECTURE, RISK, PRINCIPLES
+   - **RISK criterion mandatory checks**:
+     - Enumerate **at least 3** `{config.ci}` failure scenarios and describe mitigation
+     - Check each pattern in `{config.risks}` one by one
+     - Consider `{config.framework}` characteristics (server/client boundary etc.)
+   - **ARCHITECTURE criterion**: explicitly describe import paths for moved/created files and pre-validate against `{config.architecture}` rules
+   - Each pass must **explicitly explore what was missed in the previous pass** ("Pass 2: {X} was missed in pass 1. Further review: ...")
+5. Progress: `✓ 2/6 Plan complete (Critic: {total FAIL fixes}, files: {N})`
 
 ### Phase 3: Tasks (3/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase tasks`
 
-`/selfish:tasks`의 로직을 인라인 실행:
+Execute `/selfish:tasks` logic inline:
 
-1. plan.md 로드
-2. Phase별 태스크 분해 (T001, T002, ...)
-3. **[P] 병렬 마커 규칙**:
-   - 파일 경로가 겹치지 않는 독립 태스크에 `[P]` 마커 부여
-   - [P] 태스크는 반드시 Phase 4에서 **Task 도구 병렬 호출로 실행** (선언만 하고 순차 실행 금지)
-   - 배치당 최대 5개
-4. 커버리지 매핑 (FR → Task)
-5. **Critic Loop 1회** (Critic Loop 규칙 준수):
-   - COVERAGE: 모든 FR/NFR이 최소 1개 태스크에 매핑되는가?
-   - [P] 마커가 붙은 태스크 간 파일 경로 겹침이 없는가?
-6. `specs/{feature}/tasks.md` 생성
-7. 진행 표시: `✓ 3/6 Tasks 완료 (태스크: {N}개, 병렬: {N}개)`
+1. Load plan.md
+2. Decompose tasks by phase (T001, T002, ...)
+3. **[P] marker and dependency rules**:
+   - Assign `[P]` marker to independent tasks with no overlapping file paths
+   - Use explicit `depends: [TXXX]` for cross-task dependencies (replaces informal `(after TXXX)`)
+   - Validate dependency graph is a DAG (no circular references)
+   - [P] tasks **must be executed in parallel** in Phase 4 (declaring [P] then running sequentially is prohibited)
+4. Coverage mapping (FR → Task)
+5. **Critic Loop 1 pass** (follow Critic Loop rules):
+   - COVERAGE: is every FR/NFR mapped to at least 1 task?
+   - DEPENDENCIES: is the dependency graph a valid DAG? Do [P] tasks have no file overlaps?
+6. Create `specs/{feature}/tasks.md`
+7. Progress: `✓ 3/6 Tasks complete (tasks: {N}, parallel: {N})`
 
 ### Phase 4: Implement (4/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase implement`
 
-`/selfish:implement`의 로직을 인라인 실행:
+Execute `/selfish:implement` logic inline with **dependency-aware orchestration**:
 
-1. tasks.md 파싱
-2. Phase별 실행:
-   - **순차 태스크**: 직접 실행
-   - **[P] 태스크**: **반드시 Task 도구로 병렬 서브에이전트 위임** (배치 최대 5개). 순차 실행 금지.
-     ```
-     Task("T012: AudioFadeControl 이동", subagent_type: "general-purpose", ...)
-     Task("T013: AudioVolumeControl 이동", subagent_type: "general-purpose", ...)
-     → 병렬 실행 → 완료 대기 → 통합
-     ```
-3. tasks.md 내 각 Implementation Phase 완료마다 **3단계 게이트** 수행 — `docs/phase-gate-protocol.md`를 반드시 읽고 따른다. 게이트 미통과 시 다음 Phase 진입 불가.
+1. Parse tasks.md — extract task IDs, [P] markers, `depends:` lists, file paths
+2. Build dependency graph per phase (validate DAG)
+3. **Orchestration mode selection** (per phase, automatic):
 
-4. tasks.md에 `[x]` 실시간 업데이트
-5. 전체 완료 후 `{config.ci}` 최종 검증
-   - 통과 시: `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" ci-pass` (Stop Gate 해제)
-6. **Implement 회고**: Plan에서 예측하지 못한 문제가 발생했다면 `specs/{feature}/retrospective.md`에 기록 (Clean에서 memory 반영용)
-7. 진행 표시: `✓ 4/6 Implement 완료 ({완료}/{전체} 태스크, CI: ✓, Mini-Review: ✓, Checkpoint: ✓)`
+   | [P] tasks in phase | Mode | Strategy |
+   |---------------------|------|----------|
+   | 0 | Sequential | Execute tasks one by one |
+   | 1–5 | Parallel Batch | Register tasks → set dependencies → launch Task() calls |
+   | 6+ | Swarm | Task pool + self-organizing worker agents (max 5 workers) |
+
+4. **Parallel Batch mode** (1–5 [P] tasks):
+   ```
+   TaskCreate({ subject: "T012: Move AudioFadeControl", ... })
+   TaskCreate({ subject: "T013: Move AudioVolumeControl", ... })
+   TaskUpdate({ taskId: "T013", addBlockedBy: ["T011"] })  // if dependency exists
+   → launch unblocked tasks as parallel Task() calls
+   → wait → launch newly-unblocked → repeat until phase complete
+   ```
+
+5. **Swarm mode** (6+ [P] tasks):
+   ```
+   // 1. Register all phase tasks via TaskCreate
+   // 2. Set up dependencies via TaskUpdate(addBlockedBy)
+   // 3. Spawn N worker agents (N = min(5, unblocked count))
+   Task("Swarm Worker 1", subagent_type: "general-purpose",
+     prompt: "Self-organizing worker: TaskList → claim → implement → complete → repeat until empty")
+   Task("Swarm Worker 2", ...)
+   // 4. Workers self-balance — fast workers claim more tasks
+   // 5. Wait for all workers to exit
+   ```
+
+6. Perform **3-step gate** on each Implementation Phase completion — **always** read `docs/phase-gate-protocol.md` first. Cannot advance to next phase without passing the gate.
+7. Real-time `[x]` updates in tasks.md
+8. After full completion, run `{config.ci}` final verification
+   - On pass: `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" ci-pass` (releases Stop Gate)
+9. **Implement retrospective**: if unexpected problems arose that weren't predicted in Plan, record in `specs/{feature}/retrospective.md` (for memory update in Clean)
+10. Progress: `✓ 4/6 Implement complete ({completed}/{total} tasks, CI: ✓, Mini-Review: ✓, Checkpoint: ✓)`
 
 ### Phase 5: Review (5/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase review`
 
-`/selfish:review`의 로직을 인라인 실행:
+Execute `/selfish:review` logic inline:
 
-1. 구현된 변경 파일 대상 리뷰 (`git diff HEAD`)
-2. 코드 품질, `{config.architecture}` 규칙, 보안, 성능, `{config.code_style}` 패턴 준수 검사
-3. **Critic Loop 1회** (Critic Loop 규칙 준수):
-   - COMPLETENESS: spec.md의 모든 SC(성공 기준)를 하나씩 대조. 미달 시 구체적 수치 제시.
-   - PRECISION: 불필요한 변경이 포함되지 않았는가? 스코프 밖 수정이 있는가?
-4. **SC 미달 항목 처리**:
-   - 수정 가능 → 자동 수정 시도 → `{config.ci}` 재검증
-   - 수정 불가 → 사유와 함께 최종 보고에 명시 (사후 합리화 금지, Plan의 목표 설정 오류로 기록)
-5. 진행 표시: `✓ 5/6 Review 완료 (🔴{N} 🟡{N} 🔵{N}, SC 미달: {N}건)`
+1. Review implemented changed files (`git diff HEAD`)
+2. Check code quality, `{config.architecture}` rules, security, performance, `{config.code_style}` pattern compliance
+3. **Critic Loop 1 pass** (follow Critic Loop rules):
+   - COMPLETENESS: cross-check every SC (success criterion) from spec.md one by one. Provide specific metrics if falling short.
+   - PRECISION: are there unnecessary changes? Are there out-of-scope modifications?
+4. **Handling SC shortfalls**:
+   - Fixable → attempt auto-fix → re-run `{config.ci}` verification
+   - Not fixable → state in final report with reason (no post-hoc rationalization; record as Plan-phase target-setting error)
+5. Progress: `✓ 5/6 Review complete (Critical:{N} Warning:{N} Info:{N}, SC shortfalls: {N})`
 
 ### Phase 6: Clean (6/6)
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase clean`
 
-구현 및 리뷰 완료 후 아티팩트 정리 및 코드베이스 위생 점검:
+Artifact cleanup and codebase hygiene check after implementation and review:
 
-1. **아티팩트 정리** (스코프 제한):
-   - **현재 파이프라인이 생성한 `specs/{feature}/` 디렉토리만 삭제**
-   - 다른 `specs/` 하위 디렉토리가 존재하면 **삭제하지 않음** (사용자에게 존재를 알리기만 함)
-   - 파이프라인 중간 산출물은 코드베이스에 남기지 않음
-2. **Dead Code 스캔**:
-   - 구현 과정에서 발생한 미사용 import 검출 (`{config.lint}`로 확인)
-   - 이동/삭제된 파일의 빈 디렉토리 제거
-   - 미사용 export 검출 (이동된 코드의 원래 위치 re-export 등)
-3. **최종 CI 게이트**:
-   - `{config.ci}` 최종 실행
-   - 실패 시 자동 수정 (최대 2회)
-4. **Memory 업데이트** (해당 시):
-   - 파이프라인 중 발견된 재사용 가능한 패턴 → `memory/` 기록
-   - `[AUTO-RESOLVED]` 항목이 있었으면 → 결정 사항 `memory/decisions/`에 기록
-   - **retrospective.md가 있으면** → Plan 단계의 Critic Loop가 놓친 패턴으로 `memory/` 기록 (다음 실행에서 RISK 점검 항목으로 재활용)
-5. **Checkpoint 리셋**:
-   - `memory/checkpoint.md` 초기화 (파이프라인 완료 = 세션 목적 달성)
-6. **Pipeline Flag 해제** (Hook 연동):
+1. **Artifact cleanup** (scope-limited):
+   - **Delete only the `specs/{feature}/` directory created by the current pipeline**
+   - If other `specs/` subdirectories exist, **do not delete them** (only inform the user of their existence)
+   - Do not leave pipeline intermediate artifacts in the codebase
+2. **Dead code scan**:
+   - Detect unused imports from the implementation process (check with `{config.lint}`)
+   - Remove empty directories from moved/deleted files
+   - Detect unused exports (re-exports of moved code from original locations etc.)
+3. **Final CI gate**:
+   - Run `{config.ci}` final execution
+   - Auto-fix on failure (max 2 attempts)
+4. **Memory update** (if applicable):
+   - Reusable patterns found during pipeline → record in `memory/`
+   - If there were `[AUTO-RESOLVED]` items → record decisions in `memory/decisions/`
+   - **If retrospective.md exists** → record as patterns missed by the Plan phase Critic Loop in `memory/` (reuse as RISK checklist items in future runs)
+5. **Checkpoint reset**:
+   - Clear `memory/checkpoint.md` (pipeline complete = session goal achieved)
+6. **Release Pipeline Flag** (hook integration):
    ```bash
    "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" end
    ```
-   - Stop Gate Hook 비활성화
-   - 변경 추적 로그 삭제
-   - Safety tag 제거 (성공 완료이므로)
-7. 진행 표시: `✓ 6/6 Clean 완료 (삭제: {N}개, Dead Code: {N}개, CI: ✓)`
+   - Stop Gate Hook deactivated
+   - Change tracking log deleted
+   - Safety tag removed (successful completion)
+7. Progress: `✓ 6/6 Clean complete (deleted: {N}, dead code: {N}, CI: ✓)`
 
-### 최종 출력
+### Final Output
 
 ```
-🏁 Auto 파이프라인 완료: {feature}
-├─ Spec: US {N}개, FR {N}개
-├─ Plan: Critic {FAIL 수정}건, 리서치 {있음/없음}
-├─ Tasks: {전체}개 (병렬 {N}개)
-├─ Implement: {완료}/{전체} 태스크, CI ✓, Checkpoint ✓
-├─ Review: 🔴{N} 🟡{N} 🔵{N}, SC 미달: {N}건
-├─ Clean: 아티팩트 {N}개 삭제, Dead Code {N}개 제거
-├─ 변경 파일: {N}개
-├─ Auto-Resolved: {N}개 (검토 권장)
-├─ Retrospective: {있음/없음}
-└─ specs/{feature}/ 정리 완료
+Auto pipeline complete: {feature}
+├─ Spec: US {N}, FR {N}
+├─ Plan: Critic {FAIL fixes}, research {present/absent}
+├─ Tasks: {total} (parallel {N})
+├─ Implement: {completed}/{total} tasks, CI ✓, Checkpoint ✓
+├─ Review: Critical:{N} Warning:{N} Info:{N}, SC shortfalls: {N}
+├─ Clean: {N} artifacts deleted, {N} dead code removed
+├─ Changed files: {N}
+├─ Auto-resolved: {N} (review recommended)
+├─ Retrospective: {present/absent}
+└─ specs/{feature}/ cleaned up
 ```
 
-## 중단 조건
+## Abort Conditions
 
-다음 상황에서 파이프라인을 **중단**하고 사용자에게 보고:
+**Abort** the pipeline and report to user in these situations:
 
-1. `{config.ci}` 3회 연속 실패
-2. 구현 중 파일 충돌 (다른 브랜치 변경과 겹침)
-3. Critical 보안 이슈 발견 (자동 수정 불가)
+1. `{config.ci}` fails 3 consecutive times
+2. File conflict during implementation (overlaps with changes from another branch)
+3. Critical security issue found (cannot auto-fix)
 
-중단 시:
+On abort:
 ```
-⚠ 파이프라인 중단 (Phase {N}/6)
-├─ 원인: {중단 사유}
-├─ 완료된 단계: {완료 목록}
-├─ 롤백: git reset --hard selfish/pre-auto (구현 전 상태로 복원)
-├─ 체크포인트: memory/checkpoint.md (마지막 Phase 게이트 통과 시점)
-├─ 아티팩트: specs/{feature}/ (부분 완료, Clean 미실행 시 수동 삭제 필요)
-└─ 재개: /selfish:resume → /selfish:implement (체크포인트 기반)
+Pipeline aborted (Phase {N}/6)
+├─ Reason: {abort cause}
+├─ Completed phases: {completed list}
+├─ Rollback: git reset --hard selfish/pre-auto (restores state before implementation)
+├─ Checkpoint: memory/checkpoint.md (last phase gate passed)
+├─ Artifacts: specs/{feature}/ (partial completion, manual deletion needed if Clean did not run)
+└─ Resume: /selfish:resume → /selfish:implement (checkpoint-based)
 ```
 
-## 주의사항
+## Notes
 
-- **Full Auto**: 중간 확인 없이 끝까지 실행. 빠르지만 방향 수정 불가.
-- **Auto-Resolved 검토**: `[AUTO-RESOLVED]` 태그가 붙은 항목은 추정치이므로 사후 검토 권장.
-- **대규모 기능 주의**: User Story 5개 초과 예상 시 시작 전 경고.
-- **기존 코드 우선**: 수정 전 반드시 기존 파일 읽기. 맹목적 생성 금지.
-- **프로젝트 규칙 준수**: `selfish.config.md`와 `CLAUDE.md`의 프로젝트 규칙 우선.
-- **Critic Loop는 의식이 아니다**: "PASS" 한 줄은 Critic을 실행하지 않은 것과 동일. 반드시 Critic Loop 규칙 섹션의 형식을 따른다.
-- **[P] 병렬은 강제다**: tasks.md에 [P] 마커를 붙였으면 반드시 Task 도구로 병렬 실행. 순차로 대체 금지.
-- **스코프 외 삭제 금지**: Clean에서 현재 파이프라인이 생성하지 않은 파일/디렉토리를 삭제하지 않는다.
+- **Full auto**: runs to completion without intermediate confirmation. Fast but direction cannot be changed mid-run.
+- **Review auto-resolved items**: items tagged `[AUTO-RESOLVED]` are estimates; review after the fact is recommended.
+- **Large feature warning**: warn before starting if more than 5 User Stories are expected.
+- **Read existing code first**: always read existing files before modifying. Do not blindly generate code.
+- **Follow project rules**: project rules in `selfish.config.md` and `CLAUDE.md` take priority.
+- **Critic Loop is not a ritual**: a single "PASS" line is equivalent to not running Critic at all. Always follow the format in the Critic Loop rules section.
+- **[P] parallel is mandatory**: if a [P] marker is assigned in tasks.md, it must be executed in parallel. Orchestration mode (batch vs swarm) is selected automatically based on task count. Sequential substitution is prohibited.
+- **Swarm mode is automatic**: when a phase has 6+ [P] tasks, swarm workers self-organize via TaskList/TaskUpdate. Do not manually batch.
+- **No out-of-scope deletion**: do not delete files/directories in Clean that were not created by the current pipeline.

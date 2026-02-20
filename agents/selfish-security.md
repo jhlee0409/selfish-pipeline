@@ -1,6 +1,6 @@
 ---
 name: selfish-security
-description: "보안 스캔 에이전트 — 취약점 패턴과 프로젝트별 보안 특성을 세션 간 기억하여 스캔 정밀도를 향상시킨다."
+description: "Security scanning agent — remembers vulnerability patterns and project-specific security characteristics across sessions to improve scan precision."
 tools:
   - Read
   - Grep

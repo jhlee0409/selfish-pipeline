@@ -1,7 +1,7 @@
 ---
 name: selfish:review
-description: "코드 리뷰 (읽기 전용)"
-argument-hint: "[범위: 파일 경로, PR 번호, 또는 staged]"
+description: "Code review (read-only)"
+argument-hint: "[scope: file path, PR number, or staged]"
 allowed-tools:
   - Read
   - Grep
@@ -11,127 +11,149 @@ allowed-tools:
 model: sonnet
 ---
 
-# /selfish:review — 코드 리뷰
+# /selfish:review — Code Review
 
-> 변경된 코드를 종합적으로 리뷰한다 (품질, 보안, 성능, 아키텍처 준수).
-> Critic Loop 1회로 리뷰 자체의 완전성을 검증한다.
+> Performs a comprehensive review of changed code (quality, security, performance, architecture compliance).
+> Validates completeness of the review itself with 1 Critic Loop pass.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 리뷰 범위 지정 (파일 경로, PR 번호, 또는 "staged")
-  - 미지정 시: 현재 브랜치의 `git diff` (unstaged + staged) 전체
+- `$ARGUMENTS` — (optional) Review scope (file path, PR number, or "staged")
+  - If not specified: full `git diff` of current branch (unstaged + staged)
 
-## 프로젝트 설정 (자동 로드)
+## Project Config (auto-loaded)
 
-!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md가 없습니다. /selfish:init으로 생성하세요."`
+!`cat .claude/selfish.config.md 2>/dev/null || echo "[CONFIG NOT FOUND] .claude/selfish.config.md not found. Create it with /selfish:init."`
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다 (위에 자동 로드되지 않았다면 수동으로 읽는다). 설정 파일이 없으면 중단.
+**Always** read `.claude/selfish.config.md` first (read manually if not auto-loaded above). Abort if config file is missing.
 
-## 실행 절차
+## Execution Steps
 
-### 1. 리뷰 대상 수집
+### 1. Collect Review Targets
 
-1. **범위 결정**:
-   - `$ARGUMENTS` = 파일 경로 → 해당 파일만
-   - `$ARGUMENTS` = PR 번호 → `gh pr diff {번호}` 실행
+1. **Determine scope**:
+   - `$ARGUMENTS` = file path → that file only
+   - `$ARGUMENTS` = PR number → run `gh pr diff {number}`
    - `$ARGUMENTS` = "staged" → `git diff --cached`
-   - 미지정 → `git diff HEAD` (커밋되지 않은 모든 변경)
-2. **변경 파일 목록** 추출
-3. 각 변경 파일의 **전체 내용** 읽기 (diff만이 아닌 전체 컨텍스트)
+   - Not specified → `git diff HEAD` (all uncommitted changes)
+2. Extract **list of changed files**
+3. Read **full content** of each changed file (not just the diff — full context)
 
-### 2. Agent Teams (파일 5개 초과 시)
+### 2. Parallel Review (scaled by file count)
 
-변경 파일이 5개 초과면 병렬 리뷰 에이전트 분배:
+Choose review orchestration based on the number of changed files:
 
+#### 5 or fewer files: Direct review
+Review all files directly in the current context (no delegation).
+
+#### 6–10 files: Parallel Batch
+Distribute to parallel review agents (2–3 files per agent):
 ```
-Task("Review: {file1, file2}", subagent_type: general-purpose)
-Task("Review: {file3, file4}", subagent_type: general-purpose)
-→ 결과 수집 → 통합 리뷰 작성
+Task("Review: {file1, file2}", subagent_type: "general-purpose")
+Task("Review: {file3, file4}", subagent_type: "general-purpose")
+→ collect results → write consolidated review
 ```
 
-### 3. 리뷰 수행
+#### 11+ files: Review Swarm
+Create a review task pool and spawn self-organizing review workers:
+```
+// 1. Register each file as a review task via TaskCreate
+TaskCreate({ subject: "Review: src/auth/login.ts", description: "Review for quality, security, architecture, performance..." })
+TaskCreate({ subject: "Review: src/auth/session.ts", ... })
+// ... for all changed files
 
-각 변경 파일에 대해 아래 관점으로 검토:
+// 2. Spawn N review workers (N = min(5, file count / 2))
+Task("Review Worker 1", subagent_type: "general-purpose",
+  prompt: "You are a review worker. Loop: TaskList → claim pending → read file + diff → review → record findings → repeat until empty.
+  Review criteria: {config.code_style}, {config.architecture}, security, performance.
+  Output findings as: severity (Critical/Warning/Info), file:line, issue, suggested fix.")
 
-#### A. 코드 품질
-- {config.code_style} 준수 (any 사용, 타입 누락)
-- 네이밍 컨벤션 (handleX, isX, UPPER_SNAKE)
-- 중복 코드
-- 불필요한 복잡성
+// 3. Collect all worker outputs → write consolidated review
+```
+
+### 3. Perform Review
+
+For each changed file, examine from the following perspectives:
+
+#### A. Code Quality
+- {config.code_style} compliance (any usage, missing types)
+- Naming conventions (handleX, isX, UPPER_SNAKE)
+- Duplicate code
+- Unnecessary complexity
 
 #### B. {config.architecture}
-- 계층 의존성 방향 위반 (하위→상위 import)
-- 세그먼트 규칙 (api/, model/, ui/, lib/)
-- 적절한 계층 배치
+- Layer dependency direction violations (lower→upper imports)
+- Segment rules (api/, model/, ui/, lib/)
+- Appropriate layer placement
 
-#### C. 보안
-- XSS 취약점 (dangerouslySetInnerHTML, 미검증 사용자 입력)
-- 민감 정보 노출
-- SQL/Command Injection
+#### C. Security
+- XSS vulnerabilities (dangerouslySetInnerHTML, unvalidated user input)
+- Sensitive data exposure
+- SQL/Command injection
 
-#### D. 성능
-- 불필요한 리렌더링 (useCallback/useMemo 누락)
-- 무한 루프 가능성 (useEffect 의존성)
-- 대용량 데이터 처리
+#### D. Performance
+- Unnecessary re-renders (missing useCallback/useMemo)
+- Infinite loop potential (useEffect dependencies)
+- Large data processing
 
-#### E. 프로젝트 패턴 준수
-- {config.state_management} 사용 패턴
-- 서버/클라이언트 상태 관리 패턴 ({config.state_management} 참조)
-- 컴포넌트 구조 (Props 타입 위치, hook 순서)
+#### E. Project Pattern Compliance
+- {config.state_management} usage patterns
+- Server/client state management patterns (see {config.state_management})
+- Component structure (Props type location, hook order)
 
-### 4. 리뷰 출력
+### 4. Review Output
 
 ```markdown
-## 코드 리뷰 결과
+## Code Review Results
 
-### 요약
-| 심각도 | 개수 | 항목 |
-|--------|------|------|
-| 🔴 Critical | {N} | {요약} |
-| 🟡 Warning | {N} | {요약} |
-| 🔵 Info | {N} | {요약} |
+### Summary
+| Severity | Count | Items |
+|----------|-------|-------|
+| Critical | {N} | {summary} |
+| Warning | {N} | {summary} |
+| Info | {N} | {summary} |
 
-### 상세 발견사항
+### Detailed Findings
 
-#### 🔴 C-{N}: {제목}
-- **파일**: {경로}:{라인}
-- **문제**: {설명}
-- **수정 제안**: {코드 예시}
+#### C-{N}: {title}
+- **File**: {path}:{line}
+- **Issue**: {description}
+- **Suggested fix**: {code example}
 
-#### 🟡 W-{N}: {제목}
-{같은 형식}
+#### W-{N}: {title}
+{same format}
 
-#### 🔵 I-{N}: {제목}
-{같은 형식}
+#### I-{N}: {title}
+{same format}
 
-### 긍정적 부분
-- {잘된 점 1-2개}
+### Positives
+- {1-2 things done well}
 ```
 
-### 5. Critic Loop (1회)
+### 5. Critic Loop (1 pass)
 
-| 기준 | 검증 내용 |
-|------|-----------|
-| **COMPLETENESS** | 모든 변경 파일을 리뷰했는가? 누락된 관점이 있는가? |
-| **PRECISION** | 발견사항이 오탐(false positive)이 아닌가? 실제 문제인가? |
+| Criterion | Validation |
+|-----------|------------|
+| **COMPLETENESS** | Were all changed files reviewed? Are there any missed perspectives? |
+| **PRECISION** | Are the findings actual issues, not false positives? |
 
-FAIL 시: 리뷰 수정 후 최종 출력 갱신.
+On FAIL: revise review and update final output.
 
-### 6. 최종 출력
+### 6. Final Output
 
 ```
-🔍 리뷰 완료
-├─ 파일: {변경 파일 수}개
-├─ 발견: 🔴 {N} / 🟡 {N} / 🔵 {N}
-├─ Critic: 1회 완료
-└─ 결론: {한 줄 요약}
+Review complete
+├─ Files: {changed file count}
+├─ Found: Critical {N} / Warning {N} / Info {N}
+├─ Critic: 1 pass complete
+└─ Conclusion: {one-line summary}
 ```
 
-## 주의사항
+## Notes
 
-- **읽기 전용**: 코드를 수정하지 않음. 발견사항만 보고.
-- **전체 컨텍스트**: diff 줄만이 아닌 파일 전체를 읽고 맥락 파악 후 리뷰.
-- **오탐 주의**: 확실하지 않은 문제는 🔵 Info로 분류.
-- **패턴 존중**: 기존 코드베이스 패턴과 다르다고 무조건 지적하지 않음. CLAUDE.md 및 selfish.config.md 기준.
+- **Read-only**: do not modify code. Report findings only.
+- **Full context**: read the entire file, not just the diff lines, to understand context before reviewing.
+- **Avoid false positives**: classify uncertain issues as Info.
+- **Respect patterns**: do not flag code simply because it differs from other patterns. Use CLAUDE.md and selfish.config.md as the standard.

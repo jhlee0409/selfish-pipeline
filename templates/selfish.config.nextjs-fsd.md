@@ -1,24 +1,24 @@
 # Selfish Configuration
 
-> 이 파일은 selfish 커맨드 시스템의 프로젝트별 설정을 정의한다.
-> 모든 selfish 커맨드는 이 파일을 참조하여 프로젝트별 동작을 결정한다.
+> This file defines project-specific settings for the selfish command system.
+> All selfish commands reference this file to determine project-specific behavior.
 
 ## CI Commands
 
 ```yaml
-ci: "yarn ci"                           # 전체 CI (lint + typecheck + build)
-typecheck: "yarn typecheck"             # 타입 체크만
-lint: "yarn lint"                       # 린트만
-lint_fix: "yarn lint:fix"               # 린트 자동 수정
-gate: "yarn typecheck && yarn lint"     # Phase 게이트 (implement 중 반복 실행)
-test: "yarn test"                       # 테스트
+ci: "yarn ci"                           # Full CI (lint + typecheck + build)
+typecheck: "yarn typecheck"             # Typecheck only
+lint: "yarn lint"                       # Lint only
+lint_fix: "yarn lint:fix"               # Auto-fix lint
+gate: "yarn typecheck && yarn lint"     # Phase gate (run repeatedly during implement)
+test: "yarn test"                       # Tests
 ```
 
 ## Architecture
 
 ```yaml
 style: "FSD"                            # Feature-Sliced Design
-layers:                                 # 상위 → 하위 순서
+layers:                                 # Top → bottom order
   - app
   - views
   - widgets
@@ -26,14 +26,14 @@ layers:                                 # 상위 → 하위 순서
   - entities
   - shared
   - core
-import_rule: "상위 계층은 하위 계층만 import 가능 (역방향 불가)"
+import_rule: "Upper layers may only import from lower layers (no reverse direction)"
 segments:
-  - api       # API 관련 로직 (React Query hooks)
-  - model     # 상태 관리 및 타입 정의
-  - ui        # UI 컴포넌트
-  - lib       # 유틸리티 함수
-  - config    # 설정 및 상수
-  - hooks     # 커스텀 훅
+  - api       # API-related logic (React Query hooks)
+  - model     # State management and type definitions
+  - ui        # UI components
+  - lib       # Utility functions
+  - config    # Configuration and constants
+  - hooks     # Custom hooks
 path_alias: "@/* → ./src/*"
 ```
 
@@ -44,10 +44,10 @@ name: "Next.js 14"
 runtime: "App Router"
 client_directive: "'use client'"
 client_directive_rule: >
-  useState/useEffect/useRef 등 클라이언트 훅을 사용하는 파일은
-  반드시 'use client' 선언 필요. barrel export(index.ts)를 통해
-  서버 컴포넌트에서 간접 import 되는 경우 특히 주의.
-server_client_boundary: true            # 서버/클라이언트 경계가 존재
+  Files using client hooks such as useState/useEffect/useRef must
+  declare 'use client'. Pay special attention when indirectly imported
+  from server components via barrel exports (index.ts).
+server_client_boundary: true            # Server/client boundary exists
 ```
 
 ## Code Style
@@ -55,14 +55,14 @@ server_client_boundary: true            # 서버/클라이언트 경계가 존�
 ```yaml
 language: "TypeScript"
 strict_mode: true
-type_keyword: "type"                    # interface 대신 type 사용
-import_type: true                       # import type { ... } 사용
+type_keyword: "type"                    # Use type instead of interface
+import_type: true                       # Use import type { ... }
 component_style: "PascalCase"
-props_position: "above component"       # Props 타입은 컴포넌트 위에 정의
+props_position: "above component"       # Define Props type above the component
 handler_naming: "handle[Event]"
 boolean_naming: "is/has/can[State]"
 constant_naming: "UPPER_SNAKE_CASE"
-any_policy: "최소화 (strict mode 준수)"
+any_policy: "minimize (comply with strict mode)"
 ```
 
 ## State Management
@@ -71,8 +71,8 @@ any_policy: "최소화 (strict mode 준수)"
 global_state: "Zustand"
 server_state: "React Query v5"
 local_state: "Context API (use-context-selector)"
-store_location: "model/ 세그먼트"
-query_location: "api/ 세그먼트"
+store_location: "model/ segment"
+query_location: "api/ segment"
 ```
 
 ## Styling
@@ -89,19 +89,19 @@ framework: "Jest + React Testing Library"
 
 ## Project-Specific Risks
 
-> Plan의 RISK Critic에서 반드시 점검할 프로젝트 고유 위험 패턴
+> Project-specific risk patterns that must be checked in the Plan's RISK Critic
 
-1. barrel export 체인에서 `'use client'` 누락 → build 실패
-2. import 순서 위반 (ESLint FSD import order)
-3. 순환 참조 (shared/ui 내부에서 barrel import 사용 시)
-4. FSD 계층 역방향 import
-5. `as any` 잔류 → typecheck 우회
+1. Missing `'use client'` in barrel export chain → build failure
+2. Import order violation (ESLint FSD import order)
+3. Circular reference (when using barrel imports inside shared/ui)
+4. FSD layer reverse import
+5. Residual `as any` → typecheck bypass
 
 ## Mini-Review Checklist
 
-> Implement Phase 게이트의 Mini-Review에서 각 파일에 대해 점검할 항목
+> Items to inspect for each file in the Mini-Review of the Implement Phase gate
 
-1. `'use client'` 필요 여부 (클라이언트 훅 사용 시 필수)
-2. FSD 계층 위반 (import 경로 N개 중 위반 M개)
-3. 프로젝트 패턴 (`type` vs `interface`, naming, import order)
-4. 미사용 코드 (미사용 import, 빈 export, dead code)
+1. Whether `'use client'` is required (mandatory when using client hooks)
+2. FSD layer violations (M violations out of N import paths)
+3. Project patterns (`type` vs `interface`, naming, import order)
+4. Dead code (unused imports, empty exports, dead code)

@@ -1,78 +1,78 @@
 ---
 name: selfish:clarify
-description: "명세 모호성 해소"
-argument-hint: "[집중 영역: 보안, 성능, UI 흐름]"
+description: "Resolve spec ambiguities"
+argument-hint: "[focus area: security, performance, UI flow]"
 user-invocable: false
 model: haiku
 ---
-# /selfish:clarify — 명세 모호성 해소
+# /selfish:clarify — Resolve Spec Ambiguities
 
-> spec.md의 모호하거나 불완전한 영역을 식별하고, 사용자 질의를 통해 해결한다.
-> 답변은 spec.md에 인라인 업데이트된다.
+> Identifies ambiguous or incomplete areas in spec.md and resolves them through user questions.
+> Answers are applied as inline updates to spec.md.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 특정 영역 집중 (예: "보안", "성능", "UI 흐름")
+- `$ARGUMENTS` — (optional) focus on a specific area (e.g., "security", "performance", "UI flow")
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**Must** read `.claude/selfish.config.md` first. Stop if the config file is not present.
 
-## 실행 절차
+## Execution Steps
 
-### 1. Spec 로드
+### 1. Load Spec
 
-1. `specs/{feature}/spec.md` 읽기 — 없으면 중단
-2. `[NEEDS CLARIFICATION]` 섹션이 있으면 우선 처리
-3. 기존 코드베이스에서 관련 패턴 빠르게 확인
+1. Read `specs/{feature}/spec.md` — stop if not found
+2. If a `[NEEDS CLARIFICATION]` section exists, process it first
+3. Quickly check existing codebase for related patterns
 
-### 2. 모호성 스캔
+### 2. Scan for Ambiguities
 
-10가지 카테고리로 스캔:
+Scan across 10 categories:
 
-| # | 카테고리 | 찾는 것 |
-|---|----------|---------|
-| 1 | 기능 범위 | 경계가 불분명한 기능 |
-| 2 | 도메인/데이터 | 엔티티 관계, 필드 정의 불완전 |
-| 3 | UX 흐름 | 사용자 동선 누락 |
-| 4 | 비기능 품질 | 수치 없는 성능/보안 요구 |
-| 5 | 외부 의존성 | API, 라이브러리 명확화 필요 |
-| 6 | 엣지 케이스 | 경계 조건 미정의 |
-| 7 | 제약/트레이드오프 | 양립 불가 요구사항 |
-| 8 | 용어 일관성 | 같은 개념 다른 이름 |
-| 9 | 완료 조건 | 측정 불가능한 성공 기준 |
-| 10 | 잔류 플레이스홀더 | TODO/TBD/??? |
+| # | Category | What to find |
+|---|----------|-------------|
+| 1 | Feature scope | Features with unclear boundaries |
+| 2 | Domain/data | Incomplete entity relationships or field definitions |
+| 3 | UX flow | Missing user journey steps |
+| 4 | Non-functional quality | Performance/security requirements without numeric targets |
+| 5 | External dependencies | APIs or libraries needing clarification |
+| 6 | Edge cases | Undefined boundary conditions |
+| 7 | Constraints/tradeoffs | Mutually incompatible requirements |
+| 8 | Terminology consistency | Same concept with different names |
+| 9 | Completion criteria | Success criteria that cannot be measured |
+| 10 | Residual placeholders | TODO/TBD/??? |
 
-### 3. 질문 생성 및 제시
+### 3. Generate and Present Questions
 
-- 최대 **5개** 질문 생성
-- 우선순위: scope > 보안/프라이버시 > UX > 기술
-- **한 번에 1개씩** AskUserQuestion으로 제시:
-  - 가능하면 객관식 (2-4개 선택지)
-  - 선택지에 각각의 의미/영향 설명 포함
+- Generate at most **5** questions
+- Priority: scope > security/privacy > UX > technical
+- Present **one at a time** via AskUserQuestion:
+  - Use multiple choice when possible (2-4 options)
+  - Include the meaning/impact of each option
 
-### 4. Spec 업데이트
+### 4. Update Spec
 
-각 답변 후:
-1. spec.md에서 해당 영역을 찾아 **인라인 업데이트**
-2. `[NEEDS CLARIFICATION]` 태그가 있었으면 제거
-3. 답변에서 파생된 새 요구사항이 있으면 FR-* 추가
-4. 변경 사항 사용자에게 간략히 고지
+After each answer:
+1. Find the relevant section in spec.md and apply the **inline update**
+2. Remove `[NEEDS CLARIFICATION]` tags if present
+3. Add new FR-* entries if new requirements arise from the answer
+4. Briefly notify the user of changes
 
-### 5. 최종 출력
+### 5. Final Output
 
 ```
-✅ 명확화 완료
-├─ 질문: {처리 수}/{생성 수}개
-├─ spec.md 업데이트: {변경 영역}
-├─ 새 요구사항: {추가된 FR 수}개
-├─ 잔여 [NEEDS CLARIFICATION]: {남은 수}개
-└─ 다음 단계: /selfish:plan
+Clarification complete
+├─ Questions: {processed}/{generated}
+├─ spec.md updated: {changed areas}
+├─ New requirements: {added FR count}
+├─ Remaining [NEEDS CLARIFICATION]: {count}
+└─ Next step: /selfish:plan
 ```
 
-## 주의사항
+## Notes
 
-- **5개 제한**: 질문이 5개를 초과하면 가장 중요한 것만 선택. 나머지는 plan 단계에서 해결.
-- **spec만 수정**: plan.md나 tasks.md는 건드리지 않음.
-- **중복 방지**: 이미 spec에 명확히 기술된 항목은 질문하지 않음.
-- **`$ARGUMENTS`가 있으면**: 해당 영역에 집중하여 스캔.
+- **5-question limit**: If more than 5 questions arise, select only the most important. Resolve the rest during the plan phase.
+- **Modify spec only**: Do not touch plan.md or tasks.md.
+- **Avoid redundancy**: Do not ask about items already clearly stated in spec.
+- **If `$ARGUMENTS` is provided**: Focus the scan on that area.

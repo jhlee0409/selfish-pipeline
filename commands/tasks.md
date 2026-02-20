@@ -1,118 +1,122 @@
 ---
 name: selfish:tasks
-description: "태스크 분해"
-argument-hint: "[제약/우선순위 지시]"
+description: "Task decomposition"
+argument-hint: "[constraints/priority directives]"
 user-invocable: false
 model: haiku
 ---
-# /selfish:tasks — 태스크 분해
+# /selfish:tasks — Task Decomposition
 
-> plan.md를 기반으로 실행 가능한 태스크 목록(tasks.md)을 생성한다.
-> Critic Loop 1회로 커버리지를 검증한다.
+> Generates an executable task list (tasks.md) based on plan.md.
+> Validates coverage with 1 Critic Loop iteration.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 추가 제약 또는 우선순위 지시
+- `$ARGUMENTS` — (optional) additional constraints or priority directives
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**Must** read `.claude/selfish.config.md` first. Stop if the config file is not present.
 
-## 실행 절차
+## Execution Steps
 
-### 1. 컨텍스트 로드
+### 1. Load Context
 
-1. `specs/{feature}/` 에서 로드:
-   - **plan.md** (필수) — 없으면 중단: "/selfish:plan을 먼저 실행하세요."
-   - **spec.md** (필수)
-   - **research.md** (있으면)
-2. plan.md에서 추출:
-   - Phase 구분
+1. Load from `specs/{feature}/`:
+   - **plan.md** (required) — stop if missing: "Run /selfish:plan first."
+   - **spec.md** (required)
+   - **research.md** (if present)
+2. Extract from plan.md:
+   - Phase breakdown
    - File Change Map
-   - 아키텍처 결정사항
+   - Architecture decisions
 
-### 2. 태스크 분해
+### 2. Decompose Tasks
 
-plan.md의 Phase별로 태스크를 분해한다.
+Decompose tasks per Phase defined in plan.md.
 
-#### 태스크 형식 (필수)
+#### Task Format (required)
 
 ```markdown
-- [ ] T{NNN} {[P]} {[US*]} {설명} `{파일 경로}`
+- [ ] T{NNN} {[P]} {[US*]} {description} `{file path}` {depends: [TXXX, TXXX]}
 ```
 
-| 구성요소 | 필수 | 설명 |
-|----------|------|------|
-| `T{NNN}` | O | 3자리 순차 ID (T001, T002, ...) |
-| `[P]` | X | 병렬 실행 가능 (다른 [P] 태스크와 파일 겹침 없음) |
-| `[US*]` | X | User Story 라벨 (spec.md의 US1, US2, ...) |
-| 설명 | O | 명확한 작업 설명 (동사로 시작) |
-| 파일 경로 | O | 주요 작업 대상 파일 (백틱으로 감쌈) |
+| Component | Required | Description |
+|-----------|----------|-------------|
+| `T{NNN}` | Yes | 3-digit sequential ID (T001, T002, ...) |
+| `[P]` | No | Parallelizable — no file overlap with other [P] tasks in the same phase |
+| `[US*]` | No | User Story label (US1, US2, ... from spec.md) |
+| description | Yes | Clear task description (start with a verb) |
+| file path | Yes | Primary target file (wrapped in backticks) |
+| `depends:` | No | Explicit dependency list — task cannot start until all listed tasks complete |
 
-#### Phase 구조
+#### Phase Structure
 
 ```markdown
-# Tasks: {기능명}
+# Tasks: {feature name}
 
 ## Phase 1: Setup
-{타입 정의, 설정, 디렉토리 구조}
+{type definitions, configuration, directory structure}
 
 ## Phase 2: Core
-{핵심 비즈니스 로직, store, API}
+{core business logic, store, API}
 
 ## Phase 3: UI
-{컴포넌트, 인터랙션}
+{components, interactions}
 
 ## Phase 4: Integration & Polish
-{연동, 에러 처리, 최적화}
+{integration, error handling, optimization}
 ```
 
-#### 분해 원칙
+#### Decomposition Principles
 
-1. **1 태스크 = 1 파일** 원칙 (가능한 한)
-2. **같은 파일 = 순차**, **다른 파일 = [P] 후보**
-3. **의존성 명시**: 의존하는 태스크가 있으면 설명에 `(after T{NNN})` 추가
-4. **테스트 태스크**: 테스트 가능한 단위마다 검증 태스크 포함
-5. **Phase 게이트**: 각 Phase 끝에 `{config.gate}` 검증 태스크 추가
+1. **1 task = 1 file** principle (where possible)
+2. **Same file = sequential**, **different files = [P] candidate**
+3. **Explicit dependencies**: Use `depends: [T001, T002]` to declare blocking dependencies. Tasks without `depends:` and with [P] marker are immediately parallelizable.
+4. **Dependency graph must be a DAG**: no circular dependencies allowed. Validate before output.
+5. **Test tasks**: Include a verification task for each testable unit
+6. **Phase gate**: Add a `{config.gate}` validation task at the end of each Phase
 
-### 3. Critic Loop (1회)
+### 3. Critic Loop (1 iteration)
 
-| 기준 | 검증 내용 |
-|------|-----------|
-| **COVERAGE** | plan.md의 File Change Map 모든 파일이 태스크에 포함되었는가? spec.md의 모든 FR-*이 커버되는가? |
+| Criterion | Validation |
+|-----------|------------|
+| **COVERAGE** | Are all files in plan.md's File Change Map included in tasks? Are all FR-* in spec.md covered? |
+| **DEPENDENCIES** | Is the dependency graph a valid DAG? Do [P] tasks within the same phase have no file overlaps? Are all `depends:` targets valid task IDs? |
 
-FAIL 시: 누락 항목 추가 후 통과.
+On FAIL: add missing items and re-check.
 
-### 4. 커버리지 매핑
+### 4. Coverage Mapping
 
 ```markdown
-## 커버리지 매핑
-| 요구사항 | 태스크 |
-|----------|--------|
+## Coverage Mapping
+| Requirement | Tasks |
+|-------------|-------|
 | FR-001 | T003, T007 |
 | FR-002 | T005, T008 |
 | NFR-001 | T012 |
 ```
 
-모든 FR-*/NFR-*가 최소 1개 태스크에 매핑되어야 함.
+Every FR-*/NFR-* must be mapped to at least one task.
 
-### 5. 최종 출력
+### 5. Final Output
 
-`specs/{feature}/tasks.md`에 저장 후:
+Save to `specs/{feature}/tasks.md`, then:
 
 ```
-📋 태스크 생성 완료
+Tasks generated
 ├─ specs/{feature}/tasks.md
-├─ 태스크: {전체 수}개 (병렬 가능: {[P] 수}개)
-├─ Phase: {Phase 수}개
-├─ 커버리지: FR {매핑률}%, NFR {매핑률}%
-├─ Critic: 1회 완료
-└─ 다음 단계: /selfish:analyze (선택) 또는 /selfish:implement
+├─ Tasks: {total count} ({[P] count} parallelizable)
+├─ Phases: {phase count}
+├─ Coverage: FR {coverage}%, NFR {coverage}%
+├─ Critic: 1 iteration complete
+└─ Next step: /selfish:analyze (optional) or /selfish:implement
 ```
 
-## 주의사항
+## Notes
 
-- **구현 코드를 쓰지 않는다**: 태스크 설명만 작성. 실제 코드는 /selfish:implement의 몫.
-- **과도한 분해 금지**: 한 줄짜리 변경을 별도 태스크로 만들지 않음.
-- **파일 경로 정확성**: 실제 프로젝트 구조에 기반한 경로 사용 (추측 금지).
-- **[P] 마커 신중히**: 진짜 독립적인 태스크만 [P] 표시. 의심스러우면 순차.
+- **Do not write implementation code**: Write task descriptions only. Actual code is the responsibility of /selfish:implement.
+- **No over-decomposition**: Do not create separate tasks for single-line changes.
+- **Accurate file paths**: Use paths based on the actual project structure (no guessing).
+- **Use [P] sparingly**: Mark [P] only for truly independent tasks. When in doubt, keep sequential.
+- **Dependencies unlock swarm**: explicit `depends:` enables /selfish:implement to use native task orchestration with automatic dependency resolution. Tasks without dependencies can be claimed by parallel workers immediately.

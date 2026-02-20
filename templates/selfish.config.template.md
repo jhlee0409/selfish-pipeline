@@ -1,38 +1,38 @@
 # Selfish Configuration
 
-> 이 파일은 selfish 커맨드 시스템의 프로젝트별 설정을 정의한다.
-> 모든 selfish 커맨드는 이 파일을 참조하여 프로젝트별 동작을 결정한다.
-> 각 섹션을 프로젝트에 맞게 수정하세요.
+> This file defines project-specific settings for the selfish command system.
+> All selfish commands reference this file to determine project-specific behavior.
+> Modify each section to match your project.
 
 ## CI Commands
 
 ```yaml
-ci: "npm run ci"                        # 전체 CI (lint + typecheck + build)
-typecheck: "npm run typecheck"          # 타입 체크만
-lint: "npm run lint"                    # 린트만
-lint_fix: "npm run lint:fix"            # 린트 자동 수정
-gate: "npm run typecheck && npm run lint"  # Phase 게이트 (implement 중 반복 실행)
-test: "npm test"                        # 테스트
+ci: "npm run ci"                        # Full CI (lint + typecheck + build)
+typecheck: "npm run typecheck"          # Typecheck only
+lint: "npm run lint"                    # Lint only
+lint_fix: "npm run lint:fix"            # Auto-fix lint
+gate: "npm run typecheck && npm run lint"  # Phase gate (run repeatedly during implement)
+test: "npm test"                        # Tests
 ```
 
 ## Architecture
 
 ```yaml
-style: "Layered"                        # 예: FSD, Clean Architecture, Modular Monolith, Layered
-layers: []                              # 상위 → 하위 순서로 나열
-import_rule: ""                         # import 방향 규칙 (예: "상위→하위만 허용")
-segments: []                            # 각 계층의 하위 세그먼트
-path_alias: ""                          # 예: "@/* → ./src/*"
+style: "Layered"                        # e.g.: FSD, Clean Architecture, Modular Monolith, Layered
+layers: []                              # List from top to bottom layer
+import_rule: ""                         # Import direction rule (e.g.: "upper → lower only")
+segments: []                            # Sub-segments for each layer
+path_alias: ""                          # e.g.: "@/* → ./src/*"
 ```
 
 ## Framework
 
 ```yaml
-name: ""                                # 예: Next.js 14, Vite, CRA
-runtime: ""                             # 예: App Router, Pages Router
-client_directive: ""                    # 예: 'use client' (없으면 비워두기)
-client_directive_rule: ""               # 클라이언트 디렉티브 적용 규칙
-server_client_boundary: false           # 서버/클라이언트 경계 존재 여부
+name: ""                                # e.g.: Next.js 14, Vite, CRA
+runtime: ""                             # e.g.: App Router, Pages Router
+client_directive: ""                    # e.g.: 'use client' (leave empty if not applicable)
+client_directive_rule: ""               # Rule for applying client directives
+server_client_boundary: false           # Whether a server/client boundary exists
 ```
 
 ## Code Style
@@ -41,50 +41,50 @@ server_client_boundary: false           # 서버/클라이언트 경계 존재 �
 language: "TypeScript"
 strict_mode: true
 type_keyword: "type"                    # type vs interface
-import_type: true                       # import type 사용 여부
+import_type: true                       # Whether to use import type
 component_style: "PascalCase"
 props_position: "above component"
 handler_naming: "handle[Event]"
 boolean_naming: "is/has/can[State]"
 constant_naming: "UPPER_SNAKE_CASE"
-any_policy: "최소화"
+any_policy: "minimize"
 ```
 
 ## State Management
 
 ```yaml
-global_state: ""                        # 예: Zustand, Redux, Pinia
-server_state: ""                        # 예: React Query, SWR, Apollo
-local_state: ""                         # 예: Context API, useState
-store_location: ""                      # store 파일 위치 패턴
-query_location: ""                      # query 파일 위치 패턴
+global_state: ""                        # e.g.: Zustand, Redux, Pinia
+server_state: ""                        # e.g.: React Query, SWR, Apollo
+local_state: ""                         # e.g.: Context API, useState
+store_location: ""                      # Store file location pattern
+query_location: ""                      # Query file location pattern
 ```
 
 ## Styling
 
 ```yaml
-framework: ""                           # 예: Tailwind CSS, styled-components, CSS Modules
+framework: ""                           # e.g.: Tailwind CSS, styled-components, CSS Modules
 ```
 
 ## Testing
 
 ```yaml
-framework: ""                           # 예: Jest, Vitest, Playwright
+framework: ""                           # e.g.: Jest, Vitest, Playwright
 ```
 
 ## Project-Specific Risks
 
-> Plan의 RISK Critic에서 반드시 점검할 프로젝트 고유 위험 패턴
-> 프로젝트에 맞게 수정하세요.
+> Project-specific risk patterns that must be checked in the Plan's RISK Critic
+> Modify to match your project.
 
-1. (예시) import 순서 위반
-2. (예시) 순환 참조
-3. (예시) 타입 안전성 우회 (as any)
+1. (example) Import order violation
+2. (example) Circular reference
+3. (example) Type safety bypass (as any)
 
 ## Mini-Review Checklist
 
-> Implement Phase 게이트의 Mini-Review에서 각 파일에 대해 점검할 항목
+> Items to inspect for each file in the Mini-Review of the Implement Phase gate
 
-1. 아키텍처 규칙 위반 여부
-2. 코드 스타일 패턴 준수
-3. 미사용 코드 (미사용 import, 빈 export, dead code)
+1. Architecture rule violations
+2. Code style pattern compliance
+3. Dead code (unused imports, empty exports, dead code)

@@ -1,0 +1,533 @@
+# Contributing to Selfish Pipeline
+
+Development guidelines for adding features, modifying behavior, upgrading, and maintaining the selfish-pipeline project.
+
+## Project Map
+
+```
+commands/   17 markdown slash commands (the product surface)
+scripts/    17 bash hook handlers (enforcement layer)
+hooks/      hooks.json (event → handler binding)
+agents/     2 persistent memory subagents
+docs/       shared reference documents
+templates/  5 project preset configs
+tests/      bash test suite (101 assertions)
+bin/        ESM CLI installer
+.claude-plugin/  plugin.json + marketplace.json
+```
+
+## Quick Reference: What to Change Where
+
+| I want to... | Primary file(s) | Also update |
+|---------------|-----------------|-------------|
+| Add a new slash command | `commands/{name}.md` | CLAUDE.md (command count), `tests/test-hooks.sh` if hooks involved |
+| Add a new hook event | `hooks/hooks.json` + `scripts/{name}.sh` | CLAUDE.md (hook count), `tests/test-hooks.sh` |
+| Add a new project template | `templates/selfish.config.{name}.md` | `commands/init.md` (template list) |
+| Add a new agent | `agents/{name}.md` | CLAUDE.md (agent count) |
+| Modify pipeline flow | `commands/auto.md` | Related phase commands, `docs/phase-gate-protocol.md` |
+| Change critic loop behavior | `docs/critic-loop-rules.md` | All commands that reference it |
+| Update version | `package.json` + `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` |
+| Change CLI installer | `bin/cli.mjs` | |
+
+---
+
+## 1. Adding a New Command
+
+### Step 1: Create the command file
+
+Create `commands/{name}.md` with required YAML frontmatter:
+
+```yaml
+---
+name: selfish:{name}
+description: "Short description in English"
+argument-hint: "[hint for arguments]"
+model: haiku|sonnet          # haiku for mechanical, sonnet for design/analysis, omit for orchestrators
+---
+```
+
+### Step 2: Choose invocation controls
+
+| Control | Value | When to use |
+|---------|-------|-------------|
+| `user-invocable: false` | Hidden from `/` menu | Commands that should only be called by other commands (analyze, clarify, tasks) |
+| `disable-model-invocation: true` | User-only | Commands that should never be auto-triggered (init, checkpoint, resume) |
+| `context: fork` | Isolated subagent | Read-only analysis commands that should not affect main context (analyze, architect, security) |
+
+### Step 3: Choose allowed-tools (optional)
+
+Only specify `allowed-tools` if the command should be restricted. Omit to allow all tools.
+
+```yaml
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+```
+
+### Step 4: Add hooks (optional)
+
+Only if the command needs its own hooks (beyond the global hooks in hooks.json):
+
+```yaml
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/track-selfish-changes.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
+```
+
+Currently only `auto` and `implement` declare command-level hooks (for change tracking and stop gate during implementation).
+
+### Step 5: Write the command body
+
+Follow this structure:
+```markdown
+# /selfish:{name} — {Title}
+
+> One-line description of what this command does.
+
+## Arguments
+## Config Load (if needs project config)
+## Execution Steps
+### 1. {Step}
+### 2. {Step}
+### N. Final Output
+## Notes
+```
+
+### Step 6: Update references
+
+- **CLAUDE.md**: Update command count (`17 markdown files` → `18 markdown files`)
+- **commands/auto.md**: If the new command is a pipeline phase, add it to the auto pipeline
+- **Global CLAUDE.md SELFISH block** (in `commands/init.md` template): Add to skill routing table if user-invocable
+- **Tests**: Add test cases if the command involves hooks or scripts
+
+### Naming conventions
+
+- Command name: `selfish:{kebab-case}` (e.g., `selfish:code-gen`)
+- File name: `commands/{kebab-case}.md` (e.g., `commands/code-gen.md`)
+- Description: English, imperative or noun phrase
+
+---
+
+## 2. Adding a New Hook Script
+
+### Step 1: Create the script
+
+Create `scripts/{name}.sh` following the mandatory template:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+cleanup() { :; }
+trap cleanup EXIT
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+# Read stdin JSON
+INPUT=$(cat)
+
+# Parse with jq first, grep/sed fallback
+if command -v jq &>/dev/null; then
+    FIELD=$(printf '%s' "$INPUT" | jq -r '.field // empty')
+else
+    FIELD=$(printf '%s' "$INPUT" | grep -o '"field":"[^"]*"' | cut -d'"' -f4)
+fi
+
+# Your logic here
+
+# Output response (varies by hook type)
+printf '{"decision":"allow"}\n'
+```
+
+### Step 2: Script conventions (mandatory)
+
+1. `#!/bin/bash` + `set -euo pipefail`
+2. `trap cleanup EXIT` with at minimum `:` placeholder
+3. `${CLAUDE_PROJECT_DIR:-$(pwd)}` for project root
+4. jq-first parsing with grep/sed fallback
+5. Exit 0 on success; exit 2 for blocking hooks (Stop, TaskCompleted, ConfigChange, TeammateIdle)
+6. `printf '%s\n' "$VAR"` instead of `echo "$VAR"` for external data
+7. `# shellcheck disable=SCXXXX` for intentional suppressions
+
+### Step 3: Response format by hook type
+
+| Hook type | stdin | Response format |
+|-----------|-------|-----------------|
+| **PreToolUse** | `{ "tool_name": "...", "tool_input": {...} }` | `{"decision":"allow"}` or `{"decision":"deny","reason":"..."}` |
+| **PostToolUse** | `{ "tool_name": "...", "tool_input": {...}, "tool_output": "..." }` | `{"hookSpecificOutput":{"additionalContext":"..."}}` |
+| **Stop** | `{}` | Exit 0 (allow) or exit 2 (block) |
+| **TaskCompleted** | `{ "task_description": "..." }` | `{"ok":true}` or `{"ok":false,"reason":"..."}` |
+| **UserPromptSubmit** | `{ "prompt": "..." }` | `{"hookSpecificOutput":{"additionalContext":"..."}}` |
+| **PermissionRequest** | `{ "tool_name": "Bash", "command": "..." }` | `{"hookSpecificOutput":{"decision":{"behavior":"allow"}}}` |
+| **SessionStart/End** | `{}` | stderr → user, stdout → Claude context |
+| **Notification** | `{ "type": "idle_prompt|permission_prompt" }` | stderr only |
+
+### Step 4: Register in hooks.json
+
+Add to `hooks/hooks.json` under the appropriate event:
+
+```json
+{
+  "hooks": {
+    "EventName": [
+      {
+        "matcher": "pattern",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/{name}.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- `matcher` is optional. Omit for universal hooks. Use regex for tool-specific hooks.
+- `async: true` + `timeout: N` for non-blocking hooks (auto-format, notifications).
+- Three handler types: `command` (shell), `prompt` (LLM single-turn), `agent` (subagent with tools).
+
+### Step 5: Write tests
+
+Add to `tests/test-hooks.sh`:
+
+```bash
+# ============================================================
+# TEST: {script-name}.sh
+# ============================================================
+
+TEST_DIR=$(mktemp -d)
+mkdir -p "$TEST_DIR/.claude"
+export CLAUDE_PROJECT_DIR="$TEST_DIR"
+
+# Test 1: description
+RESULT=$(echo '{"input":"data"}' | bash "$SCRIPT_DIR/scripts/{name}.sh" 2>/dev/null)
+assert_contains "$RESULT" "expected" "Test 1: description"
+
+# Test 2: error case
+set +e
+echo '{}' | bash "$SCRIPT_DIR/scripts/{name}.sh" 2>/dev/null
+EXIT_CODE=$?
+set -e
+assert_eq "$EXIT_CODE" "0" "Test 2: description"
+
+rm -rf "$TEST_DIR"
+```
+
+Key testing patterns:
+- Use `mktemp -d` for isolation (variable name `TEST_DIR`, not `TMPDIR`)
+- Set `CLAUDE_PROJECT_DIR` to `TEST_DIR`
+- Create `.claude/` subdirectory with needed flag files
+- Use `set +e` / `set -e` around scripts expected to exit non-zero
+- Clean up with `rm -rf "$TEST_DIR"`
+
+---
+
+## 3. Adding a New Project Template
+
+### Step 1: Create the template
+
+Create `templates/selfish.config.{name}.md` following the structure:
+
+```markdown
+# Project Configuration
+
+## project
+- name: {project-name}
+- type: {type}
+- language: TypeScript
+
+## ci
+\`\`\`bash
+npm run typecheck && npm run lint && npm test
+\`\`\`
+
+## gate
+\`\`\`bash
+npm run typecheck && npm run lint
+\`\`\`
+
+## lint
+\`\`\`bash
+npm run lint
+\`\`\`
+
+## architecture
+{Architecture description, layer rules, import direction rules}
+
+## framework
+{Framework-specific characteristics}
+
+## code_style
+{Code style rules, naming conventions}
+
+## state_management
+{State management patterns}
+
+## risks
+{Project-specific risk patterns}
+
+## mini_review
+{Checklist items for mini-review}
+```
+
+### Step 2: Register in init.md
+
+Update `commands/init.md` to include the new template in the selection list.
+
+---
+
+## 4. Adding a New Agent
+
+### Step 1: Create the agent file
+
+Create `agents/{name}.md`:
+
+```yaml
+---
+name: selfish-{name}
+description: "Description of the agent's role and memory behavior"
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+model: sonnet
+memory: project
+skills:
+  - docs/critic-loop-rules.md
+  - docs/phase-gate-protocol.md
+---
+
+# Agent body with instructions
+```
+
+Key properties:
+- `memory: project` — persists memory across sessions in the project scope
+- `isolation: worktree` — optional, runs in isolated worktree
+- `skills` — reference shared docs that the agent should follow
+
+### Step 2: Reference from a command
+
+If the agent is used by a specific command:
+
+```yaml
+---
+name: selfish:{command}
+context: fork
+agent: selfish-{name}
+---
+```
+
+---
+
+## 5. Modifying Pipeline Flow
+
+The pipeline is `spec → plan → tasks → implement → test → review → clean`.
+
+### Modifying a phase
+
+1. Edit the standalone command in `commands/{phase}.md`
+2. Mirror the changes in `commands/auto.md` (Phase N section)
+3. If the phase gate behavior changed, update `docs/phase-gate-protocol.md`
+4. If critic loop criteria changed, update `docs/critic-loop-rules.md`
+
+### Adding a new phase
+
+1. Create `commands/{phase}.md`
+2. Update `commands/auto.md`:
+   - Add the new phase section
+   - Update phase numbering (e.g., `Phase N/7`)
+   - Update the progress notification format
+   - Add `selfish-pipeline-manage.sh phase {name}` call
+3. Update `scripts/selfish-pipeline-manage.sh` to handle the new phase name
+4. Update `CLAUDE.md` pipeline description
+5. Update the SELFISH block template in `commands/init.md`
+
+### Modifying orchestration (implement phase)
+
+The implement phase uses 3-tier orchestration:
+
+| Mode | Trigger | Implementation |
+|------|---------|----------------|
+| Sequential | 0 [P] tasks | Direct execution |
+| Parallel Batch | 1–5 [P] tasks | TaskCreate + addBlockedBy + parallel Task() calls |
+| Swarm | 6+ [P] tasks | Task pool + self-organizing worker agents |
+
+To modify:
+- Batch/swarm thresholds: edit `commands/implement.md` Mode Selection table
+- Worker behavior: edit the swarm worker prompt in `commands/implement.md`
+- Auto pipeline integration: mirror changes in `commands/auto.md` Phase 4
+
+---
+
+## 6. Version Bump
+
+Three files must always be in sync:
+
+```
+package.json                          → "version": "X.Y.Z"
+.claude-plugin/plugin.json            → "version": "X.Y.Z"
+.claude-plugin/marketplace.json       → "metadata.version": "X.Y.Z"
+                                      → "plugins[0].version": "X.Y.Z"
+```
+
+Bump strategy:
+- **Patch** (1.1.0 → 1.1.1): bug fixes, typo corrections, minor adjustments
+- **Minor** (1.1.0 → 1.2.0): new commands, new hooks, new templates, behavior changes
+- **Major** (1.1.0 → 2.0.0): breaking changes to command format, hook protocol, or config schema
+
+After bumping, update `CHANGELOG.md`.
+
+---
+
+## 7. Plugin Cache Sync
+
+After modifying source files, the plugin cache at `~/.claude/plugins/cache/selfish-pipeline/selfish/{version}/` must be updated for changes to take effect in the current Claude Code session.
+
+```bash
+CACHE="$HOME/.claude/plugins/cache/selfish-pipeline/selfish/$(jq -r .version package.json)"
+SRC="$(pwd)"
+
+# Sync specific files
+cp "$SRC/commands/{file}.md" "$CACHE/commands/{file}.md"
+
+# Or sync entire directories
+cp -R "$SRC/commands/" "$CACHE/commands/"
+cp -R "$SRC/scripts/" "$CACHE/scripts/"
+cp -R "$SRC/hooks/" "$CACHE/hooks/"
+cp "$SRC/CLAUDE.md" "$CACHE/CLAUDE.md"
+```
+
+**Important**: Cache sync is only needed during development. Users get fresh cache on install/update.
+
+---
+
+## 8. Testing
+
+### Running tests
+
+```bash
+npm test              # bash tests/test-hooks.sh (101 assertions)
+npm run lint          # shellcheck scripts/*.sh
+npm run test:all      # lint + test combined
+```
+
+### Test structure
+
+All tests live in `tests/test-hooks.sh`. Each test suite follows:
+
+```bash
+# ============================================================
+# TEST: {script-name}.sh
+# ============================================================
+
+TEST_DIR=$(mktemp -d)
+mkdir -p "$TEST_DIR/.claude"
+export CLAUDE_PROJECT_DIR="$TEST_DIR"
+
+# ... test cases with assert_eq / assert_contains / assert_not_contains ...
+
+rm -rf "$TEST_DIR"
+```
+
+### Assert functions
+
+```bash
+assert_eq "$actual" "$expected" "test description"
+assert_contains "$string" "$substring" "test description"
+assert_not_contains "$string" "$substring" "test description"
+```
+
+### Test requirements for new scripts
+
+Every new script in `scripts/` must have:
+1. At least 1 test for the happy path
+2. At least 1 test for inactive pipeline (should be a no-op or passthrough)
+3. At least 1 test for edge cases (empty stdin, missing files)
+
+---
+
+## 9. Documentation Rules
+
+### Shared docs (`docs/`)
+
+- `critic-loop-rules.md` — Referenced by all commands that run critic loops. Changes affect the entire pipeline.
+- `phase-gate-protocol.md` — Referenced by `implement` and `auto`. Changes affect phase completion behavior.
+
+**Rule**: Never duplicate these docs inline in commands. Always reference them with:
+```markdown
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+```
+
+### CLAUDE.md
+
+- Describes project architecture for Claude Code sessions working on this repo
+- Update whenever: command count changes, hook count changes, new architectural pattern is introduced
+- Keep factual and concise — this is a reference, not a tutorial
+
+### .claude/rules/
+
+- `commands.md` — Rules for writing command files (frontmatter requirements)
+- `shell-scripts.md` — Rules for writing shell scripts (conventions)
+- These are auto-loaded by Claude Code and enforced during development
+
+---
+
+## 10. Common Pitfalls
+
+### Forgetting cache sync
+Source changes don't affect the running session until synced to `~/.claude/plugins/cache/`. Always sync after modifying commands, hooks, or scripts during development.
+
+### hooks.json vs command-level hooks
+- `hooks/hooks.json` — Global hooks, always active
+- Command frontmatter `hooks:` — Only active when that specific command is running
+- Don't duplicate the same hook in both places (causes double execution)
+
+### Exit codes in hook scripts
+- Exit 0 = success / allow
+- Exit 2 = block the action (for Stop, TaskCompleted, ConfigChange, TeammateIdle)
+- Exit 1 = error (treated as hook failure, not a block)
+
+### Version mismatch
+Plugin install fails silently if `plugin.json` version doesn't match `marketplace.json`. Always keep all 3 files in sync.
+
+### Korean text in global project
+This is a global open-source project. All user-facing text must be in English. Check before committing:
+```bash
+# Quick check for Korean characters in tracked files
+git diff --cached --name-only | xargs grep -l '[가-힣]' 2>/dev/null
+```
+
+### Testing with TMPDIR
+Use `TEST_DIR` as the variable name, never `TMPDIR` (conflicts with system environment variable).
+
+### Destructive git commands during pipeline
+The `selfish-bash-guard.sh` hook blocks dangerous git commands (`push --force`, `reset --hard`, `clean -f`) when the pipeline is active. Rollback commands targeting `selfish/pre-*` tags are whitelisted.
+
+---
+
+## 11. Release Checklist
+
+1. All tests pass: `npm run test:all`
+2. Version bumped in all 3 files (package.json, plugin.json, marketplace.json)
+3. CHANGELOG.md updated
+4. No Korean text in any tracked file
+5. All command frontmatter follows conventions (model, description, controls)
+6. New scripts have shellcheck passing
+7. New scripts have test coverage in test-hooks.sh
+8. CLAUDE.md reflects current counts and architecture
+9. Commit and tag: `git tag v{X.Y.Z}`
+10. Push: `git push origin main --tags`

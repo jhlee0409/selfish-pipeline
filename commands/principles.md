@@ -1,7 +1,7 @@
 ---
 name: selfish:principles
-description: "프로젝트 원칙 관리"
-argument-hint: "[동작: add, remove, list, check]"
+description: "Manage project principles"
+argument-hint: "[action: add, remove, list, check]"
 disable-model-invocation: true
 allowed-tools:
   - Read
@@ -11,67 +11,67 @@ allowed-tools:
 model: haiku
 ---
 
-# /selfish:principles — 프로젝트 원칙 관리
+# /selfish:principles — Manage Project Principles
 
-> 프로젝트의 핵심 원칙(constitution)을 생성하고 관리한다.
-> memory/principles.md에 저장되어 모든 세션에서 참조된다.
+> Creates and manages the project's core principles (constitution).
+> Stored in memory/principles.md and referenced across all sessions.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (선택) 동작 지시:
-  - 미지정: 현재 원칙 조회
-  - `add {원칙}`: 새 원칙 추가
-  - `remove {번호}`: 원칙 제거
-  - `init`: 대화형 초기 설정
+- `$ARGUMENTS` — (optional) action directive:
+  - not specified: view current principles
+  - `add {principle}`: add a new principle
+  - `remove {number}`: remove a principle
+  - `init`: interactive initial setup
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**Must** read `.claude/selfish.config.md` first. Stop if the config file is not present.
 
-## 실행 절차
+## Execution Steps
 
-### 1. 현재 상태 확인
+### 1. Check Current State
 
-`memory/principles.md` 읽기:
-- 있으면: 기존 원칙 로드
-- 없으면: 빈 상태 (init 안내)
+Read `memory/principles.md`:
+- If present: load existing principles
+- If absent: empty state (show `init` instructions)
 
-### 2. 동작 분기
+### 2. Action Branch
 
-#### A. 조회 (인자 없음)
-현재 원칙 목록을 표시:
+#### A. View (no arguments)
+Display current principles list:
 ```
-📜 프로젝트 원칙
-├─ MUST-001: {원칙}
-├─ MUST-002: {원칙}
-├─ SHOULD-001: {원칙}
-└─ 마지막 수정: {날짜}
+Project Principles
+├─ MUST-001: {principle}
+├─ MUST-002: {principle}
+├─ SHOULD-001: {principle}
+└─ Last updated: {date}
 ```
 
-#### B. 초기 설정 (`init`)
+#### B. Initial Setup (`init`)
 
-대화형으로 원칙 수집:
+Collect principles interactively:
 
-1. **프로젝트 컨텍스트** 분석 (CLAUDE.md, package.json, 코드 구조)
-2. 자동 추출 가능한 원칙 제안:
-   - {config.architecture} 규칙 준수
-   - {config.code_style} 준수
-   - 린트 경고 0 ({config.lint} 기준)
-   - 등
-3. 사용자에게 추가 원칙 질문 (AskUserQuestion)
-4. 수집된 원칙을 구조화
+1. Analyze **project context** (CLAUDE.md, package.json, code structure)
+2. Suggest automatically extractable principles:
+   - Comply with {config.architecture} rules
+   - Follow {config.code_style}
+   - Zero lint warnings (per {config.lint})
+   - etc.
+3. Ask user for additional principles (AskUserQuestion)
+4. Structure collected principles
 
-#### C. 추가 (`add`)
-1. 새 원칙의 강도 결정 (MUST / SHOULD / MAY)
-2. principles.md에 추가
-3. 버전 업데이트
+#### C. Add (`add`)
+1. Determine strength of the new principle (MUST / SHOULD / MAY)
+2. Add to principles.md
+3. Update version
 
-#### D. 제거 (`remove`)
-1. 해당 원칙 확인
-2. 사용자 확인 후 제거
-3. 버전 업데이트 (MAJOR)
+#### D. Remove (`remove`)
+1. Confirm the principle
+2. Remove after user confirmation
+3. Update version (MAJOR)
 
-### 3. 저장 형식
+### 3. Storage Format
 
 ```markdown
 # Project Principles
@@ -79,29 +79,29 @@ model: haiku
 > Version: {MAJOR.MINOR.PATCH}
 > Last Updated: {YYYY-MM-DD}
 
-## MUST (위반 불가)
-- **MUST-001**: {원칙} — {근거}
-- **MUST-002**: {원칙} — {근거}
+## MUST (non-negotiable)
+- **MUST-001**: {principle} — {rationale}
+- **MUST-002**: {principle} — {rationale}
 
-## SHOULD (강력 권장)
-- **SHOULD-001**: {원칙} — {근거}
+## SHOULD (strongly recommended)
+- **SHOULD-001**: {principle} — {rationale}
 
-## MAY (선택적)
-- **MAY-001**: {원칙} — {근거}
+## MAY (optional)
+- **MAY-001**: {principle} — {rationale}
 
 ## Changelog
-- {날짜}: {변경 내용}
+- {date}: {change description}
 ```
 
-### 4. 버전 규칙
+### 4. Versioning Rules
 
-- **MAJOR**: MUST 원칙 추가/제거/재정의
-- **MINOR**: SHOULD/MAY 원칙 추가, MUST 명확화
-- **PATCH**: 오타 수정, 근거 보완
+- **MAJOR**: MUST principle added, removed, or redefined
+- **MINOR**: SHOULD/MAY principle added, MUST principle clarified
+- **PATCH**: Typo fix, rationale elaboration
 
-## 주의사항
+## Notes
 
-- **영속 저장**: memory/principles.md에 저장되어 세션 간 유지.
-- **자동 참조**: /selfish:plan, /selfish:architect에서 자동으로 로드하여 검증.
-- **간결하게**: 원칙은 10개 이내로 유지. 너무 많으면 실효성 저하.
-- **CLAUDE.md와 중복 방지**: CLAUDE.md에 이미 있는 규칙은 원칙으로 중복 등록하지 않음.
+- **Persistent storage**: Saved to memory/principles.md and maintained across sessions.
+- **Auto-referenced**: Automatically loaded and validated by /selfish:plan and /selfish:architect.
+- **Keep it concise**: Maintain no more than 10 principles. Too many reduces effectiveness.
+- **Avoid duplication with CLAUDE.md**: Do not re-register rules already present in CLAUDE.md as principles.

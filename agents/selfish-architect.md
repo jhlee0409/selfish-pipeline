@@ -1,6 +1,6 @@
 ---
 name: selfish-architect
-description: "아키텍처 분석 에이전트 — ADR 결정과 아키텍처 패턴을 세션 간 기억하여 일관된 설계 조언을 제공한다."
+description: "Architecture analysis agent — remembers ADR decisions and architecture patterns across sessions to provide consistent design guidance."
 tools:
   - Read
   - Grep

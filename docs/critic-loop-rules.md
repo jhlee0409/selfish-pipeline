@@ -1,22 +1,22 @@
-# Critic Loop 규칙
+# Critic Loop Rules
 
-> Critic Loop의 목적은 산출물의 결함을 **반드시 찾아내는 것**이다. "PASS"만 나열하는 것은 Critic을 실행하지 않은 것과 동일하다.
+> The purpose of the Critic Loop is to **find defects in the output without fail**. Listing only "PASS" results is equivalent to not running the Critic at all.
 
-## 필수 원칙
+## Required Principles
 
-1. **최소 발견 수**: 각 Critic 회차에서 **기준당 최소 1개의 우려사항, 개선점, 또는 검증 근거**를 기술해야 한다. 문제가 없다면 "왜 문제가 없는지"를 구체적으로 설명한다.
-2. **체크리스트 응답**: 각 기준에 대해 구체적 질문에 답변하는 형태로 출력한다. "PASS" 한 단어 금지.
-3. **Adversarial Pass**: 매 회차의 마지막에 **"이 산출물이 실패하는 시나리오 1가지"**를 반드시 기술한다. 시나리오가 현실적이면 FAIL로 전환하여 수정한다.
-4. **정량적 근거**: "없음", "준수" 같은 정성적 판단 대신, "N개 중 M개 확인", "X줄 중 Y줄 해당" 같은 정량 데이터를 제시한다.
+1. **Minimum findings**: In each Critic round, **at least 1 concern, improvement point, or verification rationale per criterion** must be stated. If there are no issues, explain specifically "why there are no issues."
+2. **Checklist responses**: For each criterion, output takes the form of answering specific questions. Single-word "PASS" is prohibited.
+3. **Adversarial Pass**: At the end of every round, **"1 scenario in which this output fails"** must be stated. If the scenario is realistic, convert to FAIL and fix.
+4. **Quantitative rationale**: Instead of qualitative judgments like "none" or "compliant," present quantitative data such as "M of N confirmed," "Y of X lines applicable."
 
-## 출력 형식
+## Output Format
 
 ```
 === CRITIC {N}/{MAX} ===
-[기준1] {질문} → {구체적 답변 + 정량 근거}
-  우려: {있으면 기술, 없으면 "왜 없는지" 설명}
-[기준2] ...
-[ADVERSARIAL] 실패 시나리오: {구체적 시나리오}
-  → 현실적? {Y → FAIL + 수정 / N → 근거 기술}
-=== 결과: FAIL {N}건 수정 / 또는 PASS (근거 첨부) ===
+[Criterion1] {question} → {specific answer + quantitative rationale}
+  Concern: {describe if present, otherwise explain "why not"}
+[Criterion2] ...
+[ADVERSARIAL] Failure scenario: {specific scenario}
+  → Realistic? {Y → FAIL + fix / N → state rationale}
+=== Result: FAIL {N} fixed / or PASS (with rationale attached) ===
 ```

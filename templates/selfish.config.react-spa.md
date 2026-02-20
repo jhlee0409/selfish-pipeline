@@ -1,24 +1,24 @@
 # Selfish Configuration
 
-> 이 파일은 selfish 커맨드 시스템의 프로젝트별 설정을 정의한다.
-> 모든 selfish 커맨드는 이 파일을 참조하여 프로젝트별 동작을 결정한다.
+> This file defines project-specific settings for the selfish command system.
+> All selfish commands reference this file to determine project-specific behavior.
 
 ## CI Commands
 
 ```yaml
-ci: "npm run build && npm run lint && npm run test"  # 전체 CI (build + lint + test)
-typecheck: "npx tsc --noEmit"                        # 타입 체크만
-lint: "npx eslint src/"                              # 린트만
-lint_fix: "npx eslint src/ --fix"                    # 린트 자동 수정
-gate: "npx tsc --noEmit && npx eslint src/"          # Phase 게이트 (implement 중 반복 실행)
-test: "npx vitest run"                               # 테스트
+ci: "npm run build && npm run lint && npm run test"  # Full CI (build + lint + test)
+typecheck: "npx tsc --noEmit"                        # Typecheck only
+lint: "npx eslint src/"                              # Lint only
+lint_fix: "npx eslint src/ --fix"                    # Auto-fix lint
+gate: "npx tsc --noEmit && npx eslint src/"          # Phase gate (run repeatedly during implement)
+test: "npx vitest run"                               # Tests
 ```
 
 ## Architecture
 
 ```yaml
 style: "Modular"
-layers:                                 # 역할별 분리 구조
+layers:                                 # Role-based separation structure
   - src/components
   - src/features
   - src/hooks
@@ -26,7 +26,7 @@ layers:                                 # 역할별 분리 구조
   - src/stores
   - src/types
   - src/api
-import_rule: "features/ 간 직접 import 불가 (shared 경유)"
+import_rule: "No direct imports between features/ (route via shared)"
 segments: []
 path_alias: "@/* → ./src/*"
 ```
@@ -36,8 +36,8 @@ path_alias: "@/* → ./src/*"
 ```yaml
 name: "Vite + React 18"
 runtime: "SPA (Client-Side)"
-client_directive: ""                    # SPA이므로 불필요
-server_client_boundary: false           # 서버/클라이언트 경계 없음
+client_directive: ""                    # Not needed for SPA
+server_client_boundary: false           # No server/client boundary
 ```
 
 ## Code Style
@@ -45,14 +45,14 @@ server_client_boundary: false           # 서버/클라이언트 경계 없음
 ```yaml
 language: "TypeScript"
 strict_mode: true
-type_keyword: "type"                    # interface 대신 type 사용
-import_type: true                       # import type { ... } 사용
+type_keyword: "type"                    # Use type instead of interface
+import_type: true                       # Use import type { ... }
 component_style: "PascalCase"
-props_position: "above component"       # Props 타입은 컴포넌트 위에 정의
+props_position: "above component"       # Define Props type above the component
 handler_naming: "handle[Event]"
 boolean_naming: "is/has/can[State]"
 constant_naming: "UPPER_SNAKE_CASE"
-any_policy: "최소화 (strict mode 준수)"
+any_policy: "minimize (comply with strict mode)"
 ```
 
 ## State Management
@@ -79,18 +79,18 @@ framework: "Vitest + React Testing Library"
 
 ## Project-Specific Risks
 
-> Plan의 RISK Critic에서 반드시 점검할 프로젝트 고유 위험 패턴
+> Project-specific risk patterns that must be checked in the Plan's RISK Critic
 
-1. Vite HMR이 꺼진 채로 빌드 시 환경 변수 누락
-2. React Query 캐시 무효화 누락으로 stale 데이터 표시
-3. Zustand store에서 selector 미사용 시 불필요한 리렌더링
-4. path alias와 Vite resolve.alias 불일치
+1. Missing environment variables when building with Vite HMR disabled
+2. Stale data displayed due to missing React Query cache invalidation
+3. Unnecessary re-renders when selectors are not used in Zustand store
+4. Mismatch between path alias and Vite resolve.alias
 
 ## Mini-Review Checklist
 
-> Implement Phase 게이트의 Mini-Review에서 각 파일에 대해 점검할 항목
+> Items to inspect for each file in the Mini-Review of the Implement Phase gate
 
-1. TypeScript strict mode 위반 (any, as unknown)
-2. import 경로가 path alias(@/) 사용하는지
-3. React hooks 규칙 (조건부 hook 호출 금지)
-4. 미사용 import / dead code
+1. TypeScript strict mode violations (any, as unknown)
+2. Whether import paths use path alias (@/)
+3. React hooks rules (no conditional hook calls)
+4. Unused imports / dead code

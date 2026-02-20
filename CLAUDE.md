@@ -14,11 +14,11 @@ Single script lint: `shellcheck scripts/selfish-bash-guard.sh`
 
 ## Architecture
 
-Selfish Pipeline is a Claude Code plugin that automates the full development cycle (spec → plan → tasks → implement → review → clean) through markdown command prompts, bash hook scripts, and project preset templates.
+Selfish Pipeline is a Claude Code plugin that automates the full development cycle (spec → plan → tasks → implement → test → review → clean) through markdown command prompts, bash hook scripts, and project preset templates. Implementation uses dependency-aware orchestration: sequential for simple tasks, parallel batch (≤5 tasks), or self-organizing swarm (6+ tasks) with native TaskCreate/TaskUpdate primitives.
 
 ### Core Layers
 
-- **commands/** — 16 markdown files, each a slash command prompt with YAML frontmatter (`name`, `description`, `argument-hint`, `allowed-tools`, `model`, `user-invocable`, `disable-model-invocation`, `context`)
+- **commands/** — 17 markdown files, each a slash command prompt with YAML frontmatter (`name`, `description`, `argument-hint`, `allowed-tools`, `model`, `user-invocable`, `disable-model-invocation`, `context`)
 - **agents/** — 2 persistent memory subagents (selfish-architect, selfish-security) with `memory: project` for cross-session learning
 - **hooks/hooks.json** — Declares 15 hook events with 3 handler types: `command` (shell scripts), `prompt` (LLM single-turn), `agent` (subagent with tools). 2 hooks use `async: true`. Includes ConfigChange (settings audit) and TeammateIdle (Agent Teams gate)
 - **scripts/** — 17 bash scripts implementing hook logic. All follow the pattern: `set -euo pipefail` + `trap cleanup EXIT` + jq-first with grep/sed fallback

@@ -1,105 +1,105 @@
 ---
 name: selfish:debug
-description: "버그 진단 및 수정"
-argument-hint: "[버그 설명, 에러 메시지, 또는 재현 단계]"
+description: "Bug diagnosis and fix"
+argument-hint: "[bug description, error message, or reproduction steps]"
 model: sonnet
 ---
 
-# /selfish:debug — 버그 진단 및 수정
+# /selfish:debug — Bug Diagnosis and Fix
 
-> 버그의 근본 원인을 분석하고 수정한다.
-> Critic Loop 2회로 수정의 안전성과 정확성을 검증한다.
+> Analyzes the root cause of a bug and fixes it.
+> Validates the safety and accuracy of the fix with 2 Critic Loop passes.
 
-## 인자
+## Arguments
 
-- `$ARGUMENTS` — (필수) 버그 설명, 에러 메시지, 또는 재현 단계
+- `$ARGUMENTS` — (required) Bug description, error message, or reproduction steps
 
-## 설정 로드
+## Config Load
 
-**반드시** `.claude/selfish.config.md`를 먼저 읽는다. 설정 파일이 없으면 중단.
+**Always** read `.claude/selfish.config.md` first. Abort if config file is missing.
 
-## 실행 절차
+## Execution Steps
 
-### 1. 정보 수집
+### 1. Gather Information
 
-1. `$ARGUMENTS`에서 추출:
-   - **증상**: 무엇이 잘못되는가?
-   - **재현 조건**: 언제 발생하는가?
-   - **에러 메시지**: 있으면 전문
-   - **예상 동작**: 어떻게 되어야 하는가?
+1. Extract from `$ARGUMENTS`:
+   - **Symptom**: what is going wrong?
+   - **Reproduction conditions**: when does it occur?
+   - **Error message**: full text if available
+   - **Expected behavior**: what should happen?
 
-2. 추가 정보 필요 시 사용자에게 질문 (최대 2개)
+2. Ask user for additional information if needed (max 2 questions)
 
-### 2. 근본 원인 분석 (RCA)
+### 2. Root Cause Analysis (RCA)
 
-순서대로 진행:
+Proceed in order:
 
-1. **에러 추적**: 에러 메시지/스택 트레이스에서 파일:라인 추출 → 해당 코드 읽기
-2. **데이터 흐름**: 문제 지점에서 역방향 추적 (어디서 잘못된 데이터가 들어왔는가?)
-3. **상태 분석**: 관련 {config.state_management} 캐시 상태 확인
-4. **최근 변경**: `git log --oneline -10 -- {관련 파일}` 으로 최근 변경 확인
-5. **경쟁 조건**: 비동기 작업 간 타이밍 이슈 확인
+1. **Error trace**: extract file:line from error message/stack trace → read that code
+2. **Data flow**: trace backwards from the problem point (where did the bad data come in?)
+3. **State analysis**: check relevant {config.state_management} cache state
+4. **Recent changes**: check recent changes with `git log --oneline -10 -- {related files}`
+5. **Race conditions**: check for timing issues between async operations
 
-### 3. 가설 수립
+### 3. Form Hypotheses
 
-가능한 원인을 **가설 목록**으로 나열:
+List possible causes as a **hypothesis list**:
 
 ```markdown
-### 가설
-1. **[가능성 높음]** {원인1}: {근거}
-2. **[가능성 중간]** {원인2}: {근거}
-3. **[가능성 낮음]** {원인3}: {근거}
+### Hypotheses
+1. **[High probability]** {cause1}: {evidence}
+2. **[Medium probability]** {cause2}: {evidence}
+3. **[Low probability]** {cause3}: {evidence}
 ```
 
-가능성 높은 것부터 검증.
+Verify starting from highest probability.
 
-### 4. 수정 구현
+### 4. Implement Fix
 
-1. **최소 변경 원칙**: 버그 수정에 필요한 최소한의 코드만 변경
-2. **영향 범위 분석**: 수정이 다른 코드에 미치는 영향 확인
-3. **수정 적용**
+1. **Minimal change principle**: change only the minimum code required to fix the bug
+2. **Impact analysis**: verify what effect the fix has on other code
+3. **Apply fix**
 
-### 5. Critic Loop (2회)
+### 5. Critic Loop (2 passes)
 
-| 기준 | 검증 내용 |
-|------|-----------|
-| **SAFETY** | 수정이 다른 기능을 망가뜨리지 않는가? 사이드 이펙트는? |
-| **CORRECTNESS** | 근본 원인을 실제로 해결했는가? 증상만 가린 것은 아닌가? |
+| Criterion | Validation |
+|-----------|------------|
+| **SAFETY** | Does the fix break any other functionality? Any side effects? |
+| **CORRECTNESS** | Does it actually resolve the root cause? Or just mask the symptom? |
 
-FAIL 시:
-- SAFETY 실패 → 영향받는 코드 추가 확인/수정
-- CORRECTNESS 실패 → 가설 재검토, 다음 가설로 이동
+On FAIL:
+- SAFETY fail → check and fix impacted code
+- CORRECTNESS fail → revisit hypotheses, move to next hypothesis
 
-### 6. 검증
+### 6. Verification
 
 ```bash
 {config.gate}
 ```
 
-실패 시 수정 후 재검증 (최대 3회).
+Retry after fixing on failure (max 3 attempts).
 
-### 7. 최종 출력
+### 7. Final Output
 
 ```
-🐛 디버그 완료
-├─ 근본 원인: {한 줄 요약}
-├─ 수정 파일: {파일 목록}
-├─ Critic: {N}회 완료
-├─ 검증: ✓ typecheck + lint 통과
-└─ 영향 범위: {영향받는 컴포넌트/기능}
+Debug complete
+├─ Root cause: {one-line summary}
+├─ Fixed files: {file list}
+├─ Critic: {N} passes complete
+├─ Verified: typecheck + lint passed
+└─ Impact scope: {affected components/features}
 ```
 
-## 디버깅 체크리스트 (자동 적용)
+## Debugging Checklist (applied automatically)
 
-CLAUDE.md의 Debugging Checklist를 항상 확인:
-1. Race Conditions — 비동기 작업 간 경쟁 상태
-2. Stale State — 오래된 상태 참조
-3. Missing Error Handling — Promise .catch() 누락
-4. Incorrect Ordering — 작업 순서 의존성
-5. Boundary Conditions — 엣지 케이스 처리
+Always check the Debugging Checklist from CLAUDE.md:
+1. Race Conditions — contention between async operations
+2. Stale State — stale state references
+3. Missing Error Handling — missing Promise .catch()
+4. Incorrect Ordering — operation order dependencies
+5. Boundary Conditions — edge case handling
 
-## 주의사항
+## Notes
 
-- **과도한 수정 금지**: 버그 수정에 필요한 것만 변경. 주변 코드 리팩토링 하지 않음.
-- **증상 vs 원인**: 표면적 증상이 아닌 근본 원인을 찾을 것.
-- **3회 시도 제한**: 수정 3회 시도 후에도 실패하면 사용자에게 상황 보고.
+- **No excessive changes**: change only what is needed to fix the bug. Do not refactor surrounding code.
+- **Symptom vs cause**: find the root cause, not the surface symptom.
+- **3-attempt limit**: if fix fails after 3 attempts, report the situation to the user.
