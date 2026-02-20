@@ -181,6 +181,7 @@ IMPORTANT: For requests matching the selfish skill routing table below, always i
 | Research | `selfish:research` | research, investigate |
 | Ambiguous | `selfish:clarify` | auto-triggered when requirements are unclear |
 | Full auto | `selfish:auto` | do it automatically, auto-run |
+| Diagnose | `selfish:doctor` | doctor, health check, diagnose, what's wrong |
 
 User-only (not auto-triggered — inform user on request):
 - `selfish:architect` — inform user when architecture review is requested
