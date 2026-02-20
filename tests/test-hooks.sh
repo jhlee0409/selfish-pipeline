@@ -548,6 +548,39 @@ cleanup_tmpdir "$TEST_DIR"
 echo ""
 
 # ============================================================
+echo "=== agents/ + hooks.json type validation ==="
+# ============================================================
+
+# 1. agents/selfish-architect.md 존재
+assert_file_exists "agents/selfish-architect.md exists" "$SCRIPT_DIR/agents/selfish-architect.md"
+
+# 2. agents/selfish-security.md 존재
+assert_file_exists "agents/selfish-security.md exists" "$SCRIPT_DIR/agents/selfish-security.md"
+
+# 3. selfish-architect.md에 memory: project 포함
+assert_file_contains "architect agent has memory: project" "$SCRIPT_DIR/agents/selfish-architect.md" "memory: project"
+
+# 4. selfish-security.md에 memory: project 포함
+assert_file_contains "security agent has memory: project" "$SCRIPT_DIR/agents/selfish-security.md" "memory: project"
+
+# 5. hooks.json에 type: "prompt" 포함
+assert_file_contains "hooks.json has type prompt" "$SCRIPT_DIR/hooks/hooks.json" '"type": "prompt"'
+
+# 6. hooks.json에 type: "agent" 포함
+assert_file_contains "hooks.json has type agent" "$SCRIPT_DIR/hooks/hooks.json" '"type": "agent"'
+
+# 7. commands/architect.md에 agent: selfish-architect 포함
+assert_file_contains "architect.md references selfish-architect agent" "$SCRIPT_DIR/commands/architect.md" "agent: selfish-architect"
+
+# 8. commands/security.md에 agent: selfish-security 포함
+assert_file_contains "security.md references selfish-security agent" "$SCRIPT_DIR/commands/security.md" "agent: selfish-security"
+
+# 9. plugin.json에 agents 필드 포함
+assert_file_contains "plugin.json has agents field" "$SCRIPT_DIR/.claude-plugin/plugin.json" '"agents"'
+
+echo ""
+
+# ============================================================
 # 결과 출력
 # ============================================================
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

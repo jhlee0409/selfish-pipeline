@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run lint          # shellcheck scripts/*.sh
-npm test              # bash tests/test-hooks.sh (77 assertions)
+npm test              # bash tests/test-hooks.sh (86 assertions)
 npm run test:all      # lint + test combined
 ```
 
@@ -19,7 +19,8 @@ Selfish Pipeline is a Claude Code plugin that automates the full development cyc
 ### Core Layers
 
 - **commands/** — 16 markdown files, each a slash command prompt with YAML frontmatter (`name`, `description`, `argument-hint`, `allowed-tools`, `model`, `user-invocable`, `disable-model-invocation`, `context`)
-- **hooks/hooks.json** — Declares 13 hook events mapping to scripts via `${CLAUDE_PLUGIN_ROOT}/scripts/...` paths (2 hooks use `async: true`)
+- **agents/** — 2 persistent memory subagents (selfish-architect, selfish-security) with `memory: project` for cross-session learning
+- **hooks/hooks.json** — Declares 13 hook events with 3 handler types: `command` (shell scripts), `prompt` (LLM single-turn), `agent` (subagent with tools). 2 hooks use `async: true`
 - **scripts/** — 15 bash scripts implementing hook logic. All follow the pattern: `set -euo pipefail` + `trap cleanup EXIT` + jq-first with grep/sed fallback
 - **docs/** — Shared reference documents (critic-loop-rules.md, phase-gate-protocol.md) referenced by commands
 - **templates/** — 5 project preset configs (nextjs-fsd, react-spa, express-api, monorepo, template)
@@ -34,6 +35,8 @@ Scripts receive stdin JSON from Claude Code and respond via stdout JSON or stder
 - **SessionEnd/Notification**: stderr shows to user, stdout goes to Claude context
 - **UserPromptSubmit**: stdout `{"hookSpecificOutput":{"additionalContext":"..."}}` injects context per prompt
 - **PermissionRequest**: stdout `{"hookSpecificOutput":{"decision":{"behavior":"allow"}}}` auto-allows whitelisted Bash commands
+- **TaskCompleted (prompt)**: `type: "prompt"` with haiku — LLM verifies acceptance criteria (supplements command CI gate)
+- **Stop (agent)**: `type: "agent"` with haiku — subagent checks TODO/FIXME in changed files (supplements command CI gate)
 
 Pipeline state is managed through flag files in `$CLAUDE_PROJECT_DIR/.claude/`:
 - `.selfish-active` — contains feature name
@@ -45,7 +48,7 @@ Pipeline state is managed through flag files in `$CLAUDE_PROJECT_DIR/.claude/`:
 
 - `user-invocable: false` — hidden from `/` menu, only model-callable (3 commands: analyze, clarify, tasks)
 - `disable-model-invocation: true` — user-only, prevents auto-calling (6 commands: init, principles, checkpoint, resume, architect, security)
-- `context: fork` — runs in isolated subagent, result returned to main context (3 commands: analyze, architect, security)
+- `context: fork` — runs in isolated subagent, result returned to main context (3 commands: analyze, architect, security). architect and security use custom agents with `memory: project` for persistent learning
 - `model: haiku|sonnet` — model routing per command complexity (haiku for mechanical tasks, sonnet for design/analysis, omit for orchestrator inheritance)
 
 ## Shell Script Conventions

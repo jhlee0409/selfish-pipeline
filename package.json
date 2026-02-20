@@ -1,12 +1,13 @@
 {
   "name": "selfish-pipeline",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Claude Code 전용 자동화 파이프라인 플러그인 — spec → plan → tasks → implement → review → clean",
   "bin": {
     "selfish-pipeline": "./bin/cli.mjs"
   },
   "type": "module",
   "files": [
+    "agents/",
     "bin/",
     "commands/",
     "hooks/",

@@ -12,9 +12,10 @@ claude plugin add selfish-pipeline
 
 - **Full Auto 파이프라인**: spec → plan → tasks → implement → review → clean 전 과정 자동화
 - **16개 슬래시 커맨드**: 7개 사용자 호출 커맨드 + 9개 내부 커맨드
-- **13개 Hook 이벤트 통합**: 세션 복원, 위험 명령 차단, 자동 포맷팅 등
+- **13개 Hook 이벤트 (3가지 핸들러 타입)**: command + prompt + agent 핸들러
 - **5개 프로젝트 프리셋**: Next.js, React SPA, Express API, Monorepo 등
 - **Critic Loop 자동 품질 검증**: 구현 후 자동 리뷰 및 보안 스캔
+- **Persistent Memory 에이전트**: architect/security 서브에이전트가 세션 간 학습 축적
 
 ## 커맨드 목록
 
@@ -53,14 +54,29 @@ claude plugin add selfish-pipeline
 | `PreToolUse (Bash)` | 위험 명령 차단 (`push --force` 등) |
 | `PostToolUse (Edit/Write)` | 변경 파일 추적 + 자동 포맷팅 |
 | `SubagentStart` | 서브에이전트 컨텍스트 주입 |
-| `Stop` | CI 게이트 (미통과 시 응답 차단) |
+| `Stop` | CI 게이트 (command) + 코드 완전성 검증 (agent) |
 | `SessionEnd` | 파이프라인 미완료 경고 |
 | `PostToolUseFailure` | 실패 진단 힌트 |
 | `Notification` | 데스크탑 알림 |
-| `TaskCompleted` | 태스크 완료 CI 게이트 |
+| `TaskCompleted` | 태스크 완료 CI 게이트 (command) + 수용 기준 검증 (prompt) |
 | `SubagentStop` | 서브에이전트 완료 추적 |
 | `UserPromptSubmit` | 매 프롬프트에 파이프라인 Phase/Feature 컨텍스트 주입 |
 | `PermissionRequest` | implement/review Phase에서 CI 관련 Bash 자동 허용 |
+
+## Hook Handler Types
+
+| 타입 | 설명 | 사용 이벤트 |
+|---|---|---|
+| `command` | 셸 스크립트 실행 (결정론적 검증) | 전체 13개 이벤트 |
+| `prompt` | LLM 단일 턴 평가 (haiku 기반) | TaskCompleted |
+| `agent` | 서브에이전트 (파일 접근 가능) | Stop |
+
+## Persistent Memory 에이전트
+
+| 에이전트 | 역할 | 메모리 저장 위치 |
+|---|---|---|
+| `selfish-architect` | 아키텍처 분석 — ADR 결정과 패턴 기억 | `.claude/agent-memory/selfish-architect/` |
+| `selfish-security` | 보안 스캔 — 취약점 패턴과 오탐 기억 | `.claude/agent-memory/selfish-security/` |
 
 ## 프리셋
 

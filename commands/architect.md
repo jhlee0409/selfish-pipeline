@@ -4,7 +4,7 @@ description: "아키텍처 분석 및 설계 조언 (읽기 전용)"
 argument-hint: "[분석 대상 또는 설계 질문]"
 disable-model-invocation: true
 context: fork
-agent: Plan
+agent: selfish-architect
 allowed-tools:
   - Read
   - Grep
@@ -86,7 +86,7 @@ Task("widgets/timeline 분석", subagent_type: Explore)
 **결과**: {예상되는 영향}
 
 ### 아키텍처 정합성
-{config.architecture} 규칙 위반 여부, import 방향 검증}
+{config.architecture} 규칙 위반 여부, import 방향 검증
 ```
 
 ### 4. Critic Loop (3회)

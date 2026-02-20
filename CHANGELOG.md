@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-20
+
+### Added
+- agents/ directory with persistent memory subagents (selfish-architect, selfish-security)
+- `memory: project` for architect and security agents — learnings persist across sessions
+- `type: "prompt"` hook handler on TaskCompleted — LLM-based acceptance criteria verification
+- `type: "agent"` hook handler on Stop — code completeness verification with file access
+- plugin.json `agents` field for agent auto-discovery
+- 9 new test assertions for agents and hook handler types
+
+### Changed
+- package.json version 1.3.0 → 1.4.0
+- plugin.json and marketplace.json version sync to 1.4.0
+- commands/architect.md agent field: `Plan` → `selfish-architect` (custom agent with memory)
+- commands/security.md agent field: `Explore` → `selfish-security` (custom agent with memory)
+- Hook handler types expanded: command only → command + prompt + agent (3 types)
+
 ## [1.3.0] - 2026-02-20
 
 ### Added
