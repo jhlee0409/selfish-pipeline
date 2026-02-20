@@ -548,6 +548,76 @@ cleanup_tmpdir "$TEST_DIR"
 echo ""
 
 # ============================================================
+echo "=== selfish-config-change.sh ==="
+# ============================================================
+
+# 1. 비활성 파이프라인 → exit 0
+TEST_DIR=$(setup_tmpdir)
+set +e
+OUTPUT=$(echo '{"source":"user_settings","file_path":"/tmp/settings.json"}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-config-change.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "inactive pipeline → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# 2. 활성 + policy_settings → exit 0 (로그만)
+TEST_DIR=$(setup_tmpdir)
+echo "config-test" > "$TEST_DIR/.claude/.selfish-active"
+set +e
+OUTPUT=$(echo '{"source":"policy_settings","file_path":"/tmp/policy.json"}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-config-change.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "policy_settings → exit 0" "0" "$CODE"
+assert_file_exists "audit log created (policy)" "$TEST_DIR/.claude/.selfish-config-audit.log"
+assert_file_contains "audit log has policy_settings" "$TEST_DIR/.claude/.selfish-config-audit.log" "policy_settings"
+cleanup_tmpdir "$TEST_DIR"
+
+# 3. 활성 + user_settings → exit 2 (차단)
+TEST_DIR=$(setup_tmpdir)
+echo "config-test" > "$TEST_DIR/.claude/.selfish-active"
+set +e
+OUTPUT=$(echo '{"source":"user_settings","file_path":"/tmp/settings.json"}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-config-change.sh" 2>&1); CODE=$?
+set -e
+assert_exit "user_settings → exit 2 (block)" "2" "$CODE"
+assert_file_exists "audit log created (user)" "$TEST_DIR/.claude/.selfish-config-audit.log"
+assert_file_contains "audit log has user_settings" "$TEST_DIR/.claude/.selfish-config-audit.log" "user_settings"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
+echo "=== selfish-teammate-idle.sh ==="
+# ============================================================
+
+# 1. 비활성 파이프라인 → exit 0
+TEST_DIR=$(setup_tmpdir)
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-teammate-idle.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "inactive pipeline → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# 2. 활성 + spec phase → exit 0 (idle 허용)
+TEST_DIR=$(setup_tmpdir)
+echo "teammate-test" > "$TEST_DIR/.claude/.selfish-active"
+echo "spec" > "$TEST_DIR/.claude/.selfish-phase"
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-teammate-idle.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "spec phase → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# 3. 활성 + implement phase → exit 2 (idle 차단)
+TEST_DIR=$(setup_tmpdir)
+echo "teammate-test" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-teammate-idle.sh" 2>&1); CODE=$?
+set -e
+assert_exit "implement phase → exit 2" "2" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
 echo "=== agents/ + hooks.json type validation ==="
 # ============================================================
 
@@ -577,6 +647,21 @@ assert_file_contains "security.md references selfish-security agent" "$SCRIPT_DI
 
 # 9. plugin.json에 agents 필드 포함
 assert_file_contains "plugin.json has agents field" "$SCRIPT_DIR/.claude-plugin/plugin.json" '"agents"'
+
+# 10. hooks.json에 ConfigChange 이벤트 포함
+assert_file_contains "hooks.json has ConfigChange event" "$SCRIPT_DIR/hooks/hooks.json" '"ConfigChange"'
+
+# 11. hooks.json에 TeammateIdle 이벤트 포함
+assert_file_contains "hooks.json has TeammateIdle event" "$SCRIPT_DIR/hooks/hooks.json" '"TeammateIdle"'
+
+# 12. selfish-security.md에 isolation: worktree 포함
+assert_file_contains "security agent has isolation: worktree" "$SCRIPT_DIR/agents/selfish-security.md" "isolation: worktree"
+
+# 13. selfish-architect.md에 skills 필드 포함
+assert_file_contains "architect agent has skills field" "$SCRIPT_DIR/agents/selfish-architect.md" "skills:"
+
+# 14. selfish-security.md에 skills 필드 포함
+assert_file_contains "security agent has skills field" "$SCRIPT_DIR/agents/selfish-security.md" "skills:"
 
 echo ""
 

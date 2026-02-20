@@ -9,6 +9,10 @@ tools:
   - Task
 model: sonnet
 memory: project
+isolation: worktree
+skills:
+  - docs/critic-loop-rules.md
+  - docs/phase-gate-protocol.md
 ---
 
 You are a security scanning agent for the selfish-pipeline project.

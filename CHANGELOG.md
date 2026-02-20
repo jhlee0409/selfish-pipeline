@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-20
+
+### Added
+- ConfigChange hook — settings file change audit/block during active pipeline
+- TeammateIdle hook — prevents Agent Teams teammate idle during implement/review phases
+- `isolation: worktree` for selfish-security agent (isolated git worktree execution)
+- `skills` field for both agents (pre-loads critic-loop-rules and phase-gate-protocol)
+- 15 new test assertions for ConfigChange, TeammateIdle, and agent frontmatter fields
+
+### Changed
+- package.json version 1.4.0 → 1.5.0
+- plugin.json and marketplace.json version sync to 1.5.0
+- Hook coverage expanded from 13 to 15 events (ConfigChange + TeammateIdle)
+- Agent frontmatter enhanced with isolation and skills fields
+
 ## [1.4.0] - 2026-02-20
 
 ### Added

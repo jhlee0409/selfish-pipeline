@@ -10,6 +10,9 @@ tools:
   - WebSearch
 model: sonnet
 memory: project
+skills:
+  - docs/critic-loop-rules.md
+  - docs/phase-gate-protocol.md
 ---
 
 You are an architecture analysis agent for the selfish-pipeline project.

@@ -12,7 +12,7 @@ claude plugin add selfish-pipeline
 
 - **Full Auto 파이프라인**: spec → plan → tasks → implement → review → clean 전 과정 자동화
 - **16개 슬래시 커맨드**: 7개 사용자 호출 커맨드 + 9개 내부 커맨드
-- **13개 Hook 이벤트 (3가지 핸들러 타입)**: command + prompt + agent 핸들러
+- **15개 Hook 이벤트 (3가지 핸들러 타입)**: command + prompt + agent 핸들러
 - **5개 프로젝트 프리셋**: Next.js, React SPA, Express API, Monorepo 등
 - **Critic Loop 자동 품질 검증**: 구현 후 자동 리뷰 및 보안 스캔
 - **Persistent Memory 에이전트**: architect/security 서브에이전트가 세션 간 학습 축적
@@ -62,12 +62,14 @@ claude plugin add selfish-pipeline
 | `SubagentStop` | 서브에이전트 완료 추적 |
 | `UserPromptSubmit` | 매 프롬프트에 파이프라인 Phase/Feature 컨텍스트 주입 |
 | `PermissionRequest` | implement/review Phase에서 CI 관련 Bash 자동 허용 |
+| `ConfigChange` | 파이프라인 활성 중 설정 변경 감사 및 차단 |
+| `TeammateIdle` | Agent Teams teammate idle 차단 (implement/review Phase) |
 
 ## Hook Handler Types
 
 | 타입 | 설명 | 사용 이벤트 |
 |---|---|---|
-| `command` | 셸 스크립트 실행 (결정론적 검증) | 전체 13개 이벤트 |
+| `command` | 셸 스크립트 실행 (결정론적 검증) | 전체 15개 이벤트 |
 | `prompt` | LLM 단일 턴 평가 (haiku 기반) | TaskCompleted |
 | `agent` | 서브에이전트 (파일 접근 가능) | Stop |
 
@@ -76,7 +78,7 @@ claude plugin add selfish-pipeline
 | 에이전트 | 역할 | 메모리 저장 위치 |
 |---|---|---|
 | `selfish-architect` | 아키텍처 분석 — ADR 결정과 패턴 기억 | `.claude/agent-memory/selfish-architect/` |
-| `selfish-security` | 보안 스캔 — 취약점 패턴과 오탐 기억 | `.claude/agent-memory/selfish-security/` |
+| `selfish-security` | 보안 스캔 — 취약점 패턴과 오탐 기억 (isolation: worktree) | `.claude/agent-memory/selfish-security/` |
 
 ## 프리셋
 

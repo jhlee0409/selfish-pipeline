@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run lint          # shellcheck scripts/*.sh
-npm test              # bash tests/test-hooks.sh (86 assertions)
+npm test              # bash tests/test-hooks.sh (101 assertions)
 npm run test:all      # lint + test combined
 ```
 
@@ -20,8 +20,8 @@ Selfish Pipeline is a Claude Code plugin that automates the full development cyc
 
 - **commands/** — 16 markdown files, each a slash command prompt with YAML frontmatter (`name`, `description`, `argument-hint`, `allowed-tools`, `model`, `user-invocable`, `disable-model-invocation`, `context`)
 - **agents/** — 2 persistent memory subagents (selfish-architect, selfish-security) with `memory: project` for cross-session learning
-- **hooks/hooks.json** — Declares 13 hook events with 3 handler types: `command` (shell scripts), `prompt` (LLM single-turn), `agent` (subagent with tools). 2 hooks use `async: true`
-- **scripts/** — 15 bash scripts implementing hook logic. All follow the pattern: `set -euo pipefail` + `trap cleanup EXIT` + jq-first with grep/sed fallback
+- **hooks/hooks.json** — Declares 15 hook events with 3 handler types: `command` (shell scripts), `prompt` (LLM single-turn), `agent` (subagent with tools). 2 hooks use `async: true`. Includes ConfigChange (settings audit) and TeammateIdle (Agent Teams gate)
+- **scripts/** — 17 bash scripts implementing hook logic. All follow the pattern: `set -euo pipefail` + `trap cleanup EXIT` + jq-first with grep/sed fallback
 - **docs/** — Shared reference documents (critic-loop-rules.md, phase-gate-protocol.md) referenced by commands
 - **templates/** — 5 project preset configs (nextjs-fsd, react-spa, express-api, monorepo, template)
 - **bin/cli.mjs** — ESM CLI entry point (install helper)
@@ -58,7 +58,7 @@ All scripts must:
 2. Include `trap cleanup EXIT` with at minimum a `:` placeholder
 3. Use `${CLAUDE_PROJECT_DIR:-$(pwd)}` for project root
 4. Parse stdin JSON with jq first, grep/sed fallback for jq-less environments
-5. Exit 0 on success; exit 2 for Stop/TaskCompleted hooks (blocks Claude response/task completion)
+5. Exit 0 on success; exit 2 for Stop/TaskCompleted/ConfigChange/TeammateIdle hooks (blocks action)
 6. Use `printf '%s\n' "$VAR"` instead of `echo "$VAR"` when piping external data (avoids `-n`/`-e` flag interpretation)
 7. Use `# shellcheck disable=SCXXXX` for intentional suppressions
 
