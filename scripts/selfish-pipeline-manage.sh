@@ -42,7 +42,12 @@ case "$COMMAND" in
       echo "Feature name required" >&2
       exit 1
     fi
-    FEATURE="$2"
+    # Sanitize feature name (strip newlines, path traversal, limit length)
+    FEATURE=$(printf '%s' "$2" | tr -d '\n\r/' | cut -c1-100)
+    if [ -z "$FEATURE" ]; then
+      echo "Feature name invalid after sanitization" >&2
+      exit 1
+    fi
 
     # Prevent duplicate execution
     if [ -f "$PIPELINE_FLAG" ]; then

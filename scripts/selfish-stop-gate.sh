@@ -21,8 +21,20 @@ PIPELINE_FLAG="${PROJECT_DIR}/.claude/.selfish-active"
 CI_FLAG="${PROJECT_DIR}/.claude/.selfish-ci-passed"
 PHASE_FLAG="${PROJECT_DIR}/.claude/.selfish-phase"
 
+# Consume stdin (required -- pipe breaks if not consumed)
+INPUT=$(cat)
+
 # If pipeline is not active -> pass through
 if [ ! -f "$PIPELINE_FLAG" ]; then
+  exit 0
+fi
+
+# Check stop_hook_active to prevent infinite loop (model keeps trying to stop, gets blocked, repeats)
+STOP_HOOK_ACTIVE=""
+if command -v jq &>/dev/null; then
+  STOP_HOOK_ACTIVE=$(printf '%s\n' "$INPUT" | jq -r '.stop_hook_active // empty' 2>/dev/null || true)
+fi
+if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   exit 0
 fi
 
@@ -48,7 +60,7 @@ if [ ! -f "$CI_FLAG" ]; then
 fi
 
 # Verify CI passed within the last 10 minutes (prevent stale results)
-CI_TIME="$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9')"
+CI_TIME="$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9' || true)"
 CI_TIME="${CI_TIME:-0}"
 NOW="$(date +%s)"
 if [ "$CI_TIME" -gt 0 ]; then

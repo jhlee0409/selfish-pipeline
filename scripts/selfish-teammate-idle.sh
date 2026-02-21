@@ -20,6 +20,9 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 PIPELINE_FLAG="${PROJECT_DIR}/.claude/.selfish-active"
 PHASE_FLAG="${PROJECT_DIR}/.claude/.selfish-phase"
 
+# Consume stdin (required -- pipe breaks if not consumed)
+cat > /dev/null
+
 # If pipeline is not active -> pass through
 if [ ! -f "$PIPELINE_FLAG" ]; then
   exit 0
@@ -30,7 +33,7 @@ FEATURE="$(head -1 "$PIPELINE_FLAG" | tr -d '\n\r')"
 # Check current Phase if phase file exists
 CURRENT_PHASE=""
 if [ -f "$PHASE_FLAG" ]; then
-  CURRENT_PHASE="$(cat "$PHASE_FLAG")"
+  CURRENT_PHASE="$(head -1 "$PHASE_FLAG" | tr -d '\n\r')"
 fi
 CURRENT_PHASE="${CURRENT_PHASE:-}"
 

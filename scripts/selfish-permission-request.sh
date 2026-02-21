@@ -45,8 +45,8 @@ if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
-# Detect command chaining/substitution/newlines -- fall through to default behavior if found (security)
-if printf '%s' "$COMMAND" | grep -qE '&&|;|\||\$\(|`'; then
+# Detect command chaining/substitution/redirects/newlines -- fall through to default behavior if found (security)
+if printf '%s' "$COMMAND" | grep -qE '&&|;|\||\$\(|`|>|<'; then
   exit 0
 fi
 # Fall through to default behavior if newlines found (prevent multi-line bypass)

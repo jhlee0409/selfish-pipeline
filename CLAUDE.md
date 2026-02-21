@@ -30,7 +30,7 @@ Selfish Pipeline is a Claude Code plugin that automates the full development cyc
 ### Hook System
 
 Scripts receive stdin JSON from Claude Code and respond via stdout JSON or stderr. Key protocols:
-- **PreToolUse**: stdin has `tool_input` → respond `{"decision":"allow"}` or `{"decision":"deny","reason":"..."}`
+- **PreToolUse**: stdin has `tool_input` → respond `{"hookSpecificOutput":{"permissionDecision":"allow"}}` or `{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"..."}}`
 - **PostToolUse/PostToolUseFailure**: respond with `{"hookSpecificOutput":{"additionalContext":"..."}}`
 - **SessionEnd/Notification**: stderr shows to user, stdout goes to Claude context
 - **UserPromptSubmit**: stdout `{"hookSpecificOutput":{"additionalContext":"..."}}` injects context per prompt

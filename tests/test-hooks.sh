@@ -85,7 +85,7 @@ echo "=== selfish-bash-guard.sh ==="
 TEST_DIR=$(setup_tmpdir)
 OUTPUT=$(echo '{}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-bash-guard.sh" 2>/dev/null); CODE=$?
 assert_exit "inactive pipeline → exit 0" "0" "$CODE"
-assert_stdout_contains "inactive → allow" '"decision":"allow"' "$OUTPUT"
+assert_stdout_contains "inactive → allow" '"permissionDecision":"allow"' "$OUTPUT"
 cleanup_tmpdir "$TEST_DIR"
 
 # 2. push --force → deny
@@ -93,7 +93,7 @@ TEST_DIR=$(setup_tmpdir)
 echo "bash-guard-test" > "$TEST_DIR/.claude/.selfish-active"
 OUTPUT=$(echo '{"tool_input":{"command":"git push --force origin main"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-bash-guard.sh" 2>/dev/null); CODE=$?
 assert_exit "push --force → exit 0 (deny in output)" "0" "$CODE"
-assert_stdout_contains "push --force → deny" '"decision":"deny"' "$OUTPUT"
+assert_stdout_contains "push --force → deny" '"permissionDecision":"deny"' "$OUTPUT"
 cleanup_tmpdir "$TEST_DIR"
 
 # 3. safe command → allow
@@ -101,14 +101,14 @@ TEST_DIR=$(setup_tmpdir)
 echo "bash-guard-test" > "$TEST_DIR/.claude/.selfish-active"
 OUTPUT=$(echo '{"tool_input":{"command":"ls -la"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-bash-guard.sh" 2>/dev/null); CODE=$?
 assert_exit "safe command → exit 0" "0" "$CODE"
-assert_stdout_contains "safe command → allow" '"decision":"allow"' "$OUTPUT"
+assert_stdout_contains "safe command → allow" '"permissionDecision":"allow"' "$OUTPUT"
 cleanup_tmpdir "$TEST_DIR"
 
 # 4. reset --hard selfish/pre- → allow (rollback permitted)
 TEST_DIR=$(setup_tmpdir)
 echo "bash-guard-test" > "$TEST_DIR/.claude/.selfish-active"
 OUTPUT=$(echo '{"tool_input":{"command":"git reset --hard selfish/pre-auto"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-bash-guard.sh" 2>/dev/null); CODE=$?
-assert_stdout_contains "reset --hard selfish/pre- → allow" '"decision":"allow"' "$OUTPUT"
+assert_stdout_contains "reset --hard selfish/pre- → allow" '"permissionDecision":"allow"' "$OUTPUT"
 cleanup_tmpdir "$TEST_DIR"
 
 # 5. empty stdin → allow
@@ -116,7 +116,7 @@ TEST_DIR=$(setup_tmpdir)
 echo "bash-guard-test" > "$TEST_DIR/.claude/.selfish-active"
 OUTPUT=$(echo '' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-bash-guard.sh" 2>/dev/null); CODE=$?
 assert_exit "empty stdin → exit 0" "0" "$CODE"
-assert_stdout_contains "empty stdin → allow" '"decision":"allow"' "$OUTPUT"
+assert_stdout_contains "empty stdin → allow" '"permissionDecision":"allow"' "$OUTPUT"
 cleanup_tmpdir "$TEST_DIR"
 
 echo ""

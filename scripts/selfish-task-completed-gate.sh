@@ -21,6 +21,9 @@ PIPELINE_FLAG="${PROJECT_DIR}/.claude/.selfish-active"
 CI_FLAG="${PROJECT_DIR}/.claude/.selfish-ci-passed"
 PHASE_FLAG="${PROJECT_DIR}/.claude/.selfish-phase"
 
+# Consume stdin (required -- pipe breaks if not consumed)
+cat > /dev/null
+
 # If pipeline is not active -> pass through
 if [ ! -f "$PIPELINE_FLAG" ]; then
   exit 0
@@ -31,7 +34,7 @@ FEATURE="$(head -1 "$PIPELINE_FLAG" | tr -d '\n\r')"
 # Check current Phase if phase file exists
 CURRENT_PHASE=""
 if [ -f "$PHASE_FLAG" ]; then
-  CURRENT_PHASE="$(cat "$PHASE_FLAG")"
+  CURRENT_PHASE="$(head -1 "$PHASE_FLAG" | tr -d '\n\r')"
 fi
 CURRENT_PHASE="${CURRENT_PHASE:-}"
 
@@ -49,7 +52,7 @@ if [ ! -f "$CI_FLAG" ]; then
 fi
 
 # Verify CI passed within the last 10 minutes (prevent stale results)
-CI_TIME="$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9')"
+CI_TIME="$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9' || true)"
 CI_TIME="${CI_TIME:-0}"
 NOW="$(date +%s)"
 if [ "$CI_TIME" -gt 0 ]; then

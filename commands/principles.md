@@ -1,7 +1,7 @@
 ---
 name: selfish:principles
 description: "Manage project principles"
-argument-hint: "[action: add, remove, list, check]"
+argument-hint: "[action: add, remove, init]"
 disable-model-invocation: true
 allowed-tools:
   - Read
@@ -56,7 +56,7 @@ Collect principles interactively:
 2. Suggest automatically extractable principles:
    - Comply with {config.architecture} rules
    - Follow {config.code_style}
-   - Zero lint warnings (per {config.lint})
+   - Zero lint warnings (per {config.ci})
    - etc.
 3. Ask user for additional principles (AskUserQuestion)
 4. Structure collected principles

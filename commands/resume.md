@@ -1,7 +1,7 @@
 ---
 name: selfish:resume
 description: "Restore session"
-argument-hint: ""
+argument-hint: "[no arguments]"
 disable-model-invocation: true
 model: haiku
 allowed-tools:

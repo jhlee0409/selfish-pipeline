@@ -8,7 +8,7 @@ model: sonnet
 # /selfish:test — Test Strategy Planning and Test Writing
 
 > Establishes a test strategy for implemented code and writes tests.
-> Pipeline position: implement → **test** → review
+> Standalone command — not part of the auto pipeline. Use after implement or before review.
 
 ## Arguments
 

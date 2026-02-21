@@ -30,7 +30,7 @@ ERROR="${ERROR:-}"
 
 # If pipeline is active, log failure (normalize error message to single line)
 if [ -f "$PIPELINE_FLAG" ] && [ -n "$ERROR" ]; then
-  ERROR_ONELINE=$(echo "$ERROR" | head -1 | cut -c1-200)
+  ERROR_ONELINE=$(printf '%s\n' "$ERROR" | head -1 | cut -c1-200)
   printf '%s\n' "$(date +%s) $TOOL_NAME: $ERROR_ONELINE" >> "$FAILURES_LOG"
 fi
 
@@ -65,12 +65,12 @@ if [ -n "$HINT" ]; then
   # Generate safe JSON with jq if available, otherwise strip special chars and use printf
   if command -v jq &> /dev/null; then
     jq -n --arg ctx "[SELFISH HINT] $HINT (tool: $TOOL_NAME)" \
-      '{"hookSpecificOutput":{"hookEventName":"PostToolUseFailure","additionalContext":$ctx}}'
+      '{"hookSpecificOutput":{"hookEventName":"PostToolUseFailure","additionalContext":$ctx}}' 2>/dev/null || true
   else
     # shellcheck disable=SC1003
-    SAFE_HINT=$(echo "$HINT" | tr -d '"' | tr -d '\\')
+    SAFE_HINT=$(printf '%s' "$HINT" | tr -d '"' | tr -d '\\')
     # shellcheck disable=SC1003
-    SAFE_TOOL=$(echo "$TOOL_NAME" | tr -d '"' | tr -d '\\')
+    SAFE_TOOL=$(printf '%s' "$TOOL_NAME" | tr -d '"' | tr -d '\\')
     printf '{"hookSpecificOutput":{"hookEventName":"PostToolUseFailure","additionalContext":"[SELFISH HINT] %s (tool: %s)"}}\n' "$SAFE_HINT" "$SAFE_TOOL"
   fi
 fi

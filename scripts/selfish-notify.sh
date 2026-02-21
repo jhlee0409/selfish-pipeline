@@ -41,8 +41,10 @@ esac
 
 # Detect platform and send notification (non-blocking via async: true in hooks.json)
 # Sanitize message (prevent AppleScript/shell injection)
-SAFE_MESSAGE=$(printf '%s' "$MESSAGE" | sed 's/[\"\\]/\\&/g' | head -1 | cut -c1-200)
-SAFE_TITLE=$(printf '%s' "$TITLE" | sed 's/[\"\\]/\\&/g')
+# shellcheck disable=SC1003
+SAFE_MESSAGE=$(printf '%s' "$MESSAGE" | sed 's/[\"\\$`]/\\&/g' | head -1 | cut -c1-200)
+# shellcheck disable=SC1003
+SAFE_TITLE=$(printf '%s' "$TITLE" | sed 's/[\"\\$`]/\\&/g')
 
 OS=$(uname -s)
 case "$OS" in

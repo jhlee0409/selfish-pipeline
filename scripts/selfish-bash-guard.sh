@@ -16,7 +16,7 @@ PIPELINE_FLAG="$PROJECT_DIR/.claude/.selfish-active"
 
 # If pipeline is inactive -> allow
 if [ ! -f "$PIPELINE_FLAG" ]; then
-  printf '{"decision":"allow"}\n'
+  printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}\n'
   exit 0
 fi
 
@@ -25,7 +25,7 @@ INPUT=$(cat)
 
 # If stdin is empty -> allow
 if [ -z "$INPUT" ]; then
-  printf '{"decision":"allow"}\n'
+  printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}\n'
   exit 0
 fi
 
@@ -38,7 +38,7 @@ fi
 
 # If command is empty -> allow
 if [ -z "$COMMAND" ]; then
-  printf '{"decision":"allow"}\n'
+  printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}\n'
   exit 0
 fi
 
@@ -67,9 +67,9 @@ case "$COMMAND" in
 esac
 
 if [ -n "$DENY_REASON" ]; then
-  printf '{"decision":"deny","reason":"SELFISH GUARD: %s"}\n' "$DENY_REASON"
+  printf '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"SELFISH GUARD: %s"}}\n' "$DENY_REASON"
 else
-  printf '{"decision":"allow"}\n'
+  printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}\n'
 fi
 
 exit 0

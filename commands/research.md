@@ -42,8 +42,8 @@ Check `memory/research/` directory for related prior research:
 Use Agent Teams — run independent investigations in parallel:
 
 ```
-Task("WebSearch: {topic} official docs", subagent_type: general-purpose)
-Task("Codebase: analyze current usage patterns", subagent_type: Explore)
+Task("WebSearch: {topic} official docs", subagent_type: "general-purpose")
+Task("Codebase: analyze current usage patterns", subagent_type: "general-purpose")
 ```
 
 Source priority:

@@ -18,7 +18,9 @@ model: haiku
 
 ## Arguments
 
-- `$ARGUMENTS` — (optional) `--verbose` for detailed output
+- `$ARGUMENTS` — (optional) flags:
+  - `--verbose` — detailed output with command results and file paths
+  - `--fast` — skip CI/gate command execution checks (faster)
 
 ## Output Format
 
