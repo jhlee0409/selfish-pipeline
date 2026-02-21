@@ -30,6 +30,6 @@ if [ -f "$PHASE_FLAG" ]; then
 fi
 
 # Output additionalContext to stdout (injected into Claude context)
-printf '{"hookSpecificOutput":{"additionalContext":"[Pipeline: %s] [Phase: %s]"}}' "$FEATURE" "$PHASE"
+printf '{"hookSpecificOutput":{"additionalContext":"[Pipeline: %s] [Phase: %s]"}}\n' "$FEATURE" "$PHASE"
 
 exit 0

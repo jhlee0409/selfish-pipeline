@@ -84,7 +84,7 @@ fi
 
 # Output allow decision
 if [ "$ALLOWED" = "true" ]; then
-  printf '{"hookSpecificOutput":{"decision":{"behavior":"allow"}}}'
+  printf '{"hookSpecificOutput":{"decision":{"behavior":"allow"}}}\n'
 fi
 
 # If ALLOWED=false, exit 0 with no output -> default behavior (user confirmation)

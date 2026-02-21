@@ -43,7 +43,7 @@ Collect automatically:
 
 **Overwrite** `memory/checkpoint.md` (keep only the latest state):
 
-```markdown
+````markdown
 # Session Checkpoint
 
 > Saved: {YYYY-MM-DD HH:mm}
@@ -68,7 +68,7 @@ Collect automatically:
 
 ## Context Notes
 {things to remember about the current work}
-```
+````
 
 ### 3. Final Output
 

@@ -77,7 +77,7 @@ Decompose tasks per Phase defined in plan.md.
 5. **Test tasks**: Include a verification task for each testable unit
 6. **Phase gate**: Add a `{config.gate}` validation task at the end of each Phase
 
-### 3. Critic Loop (1 iteration)
+### 3. Critic Loop (1 pass)
 
 > **Always** read `docs/critic-loop-rules.md` first and follow it.
 

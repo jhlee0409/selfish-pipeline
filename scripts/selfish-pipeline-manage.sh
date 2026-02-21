@@ -38,7 +38,11 @@ fi
 
 case "$COMMAND" in
   start)
-    FEATURE="${2:?Feature name required}"
+    if [ -z "${2:-}" ]; then
+      echo "Feature name required" >&2
+      exit 1
+    fi
+    FEATURE="$2"
 
     # Prevent duplicate execution
     if [ -f "$PIPELINE_FLAG" ]; then
