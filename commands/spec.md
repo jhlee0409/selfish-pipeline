@@ -77,6 +77,13 @@ Create `specs/{feature-name}/spec.md`:
 ### Non-Functional Requirements
 - **NFR-001**: {performance/security/accessibility etc.}
 
+### Auto-Suggested NFRs
+{Load `docs/nfr-templates.md` and select 3-5 relevant NFRs based on the project type detected from selfish.config.md}
+- **NFR-A01** [AUTO-SUGGESTED]: {suggestion from matching project type template}
+- **NFR-A02** [AUTO-SUGGESTED]: {suggestion}
+- **NFR-A03** [AUTO-SUGGESTED]: {suggestion}
+{Tag each with [AUTO-SUGGESTED]. Users may accept, modify, or remove.}
+
 ### Key Entities
 | Entity | Description | Related Existing Code |
 |--------|-------------|-----------------------|
@@ -133,3 +140,4 @@ Spec generated
 - Specify **actual paths** for entities related to existing code.
 - If `$ARGUMENTS` is empty, ask user for a feature description.
 - Do not pack too many features into one spec. Suggest splitting if User Stories exceed 5.
+- When running `/selfish:auto`, `[AUTO-SUGGESTED]` NFRs are included automatically. Review after completion is recommended.

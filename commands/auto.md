@@ -46,6 +46,12 @@ If config file is missing: print "`.claude/selfish.config.md` not found. Create 
 1. If `$ARGUMENTS` is empty → print "Please enter a feature description." and abort
 2. Check current branch → `BRANCH_NAME`
 3. Determine feature name (2-3 keywords → kebab-case)
+3.5. **Preflight Check**:
+   ```bash
+   "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-preflight-check.sh"
+   ```
+   - If exit 1 (hard failure) → print error and **abort**
+   - If warnings only (exit 0) → print warnings and continue
 4. **Activate Pipeline Flag** (hook integration):
    ```bash
    "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" start {feature}
@@ -53,6 +59,7 @@ If config file is missing: print "`.claude/selfish.config.md` not found. Create 
    - Safety Snapshot created automatically (`selfish/pre-auto` git tag)
    - Stop Gate Hook activated (blocks response termination on CI failure)
    - File change tracking started
+   - Timeline log: `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" log pipeline-start "Auto pipeline: {feature}"`
 5. Create `specs/{feature}/` directory → **record path as `PIPELINE_ARTIFACT_DIR`** (for Clean scope)
 6. Start notification:
    ```
@@ -157,6 +164,7 @@ Execute `/selfish:implement` logic inline with **dependency-aware orchestration*
    ```
 
 6. Perform **3-step gate** on each Implementation Phase completion — **always** read `docs/phase-gate-protocol.md` first. Cannot advance to next phase without passing the gate.
+   - On gate pass: create phase rollback point `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase-tag {phase_number}`
 7. Real-time `[x]` updates in tasks.md
 8. After full completion, run `{config.ci}` final verification
    - On pass: `"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" ci-pass` (releases Stop Gate)
@@ -199,9 +207,14 @@ Artifact cleanup and codebase hygiene check after implementation and review:
 4. **Memory update** (if applicable):
    - Reusable patterns found during pipeline → record in `memory/`
    - If there were `[AUTO-RESOLVED]` items → record decisions in `memory/decisions/`
-   - **If retrospective.md exists** → record as patterns missed by the Plan phase Critic Loop in `memory/` (reuse as RISK checklist items in future runs)
+   - **If retrospective.md exists** → record as patterns missed by the Plan phase Critic Loop in `memory/retrospectives/` (reuse as RISK checklist items in future runs)
+   - **If review-report.md exists** → copy to `memory/reviews/{feature}-{date}.md` before specs/ deletion
 5. **Checkpoint reset**:
    - Clear `memory/checkpoint.md` (pipeline complete = session goal achieved)
+6.5. **Timeline finalize**:
+   ```bash
+   "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" log pipeline-end "Pipeline complete: {feature}"
+   ```
 6. **Release Pipeline Flag** (hook integration):
    ```bash
    "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" end
@@ -209,6 +222,7 @@ Artifact cleanup and codebase hygiene check after implementation and review:
    - Stop Gate Hook deactivated
    - Change tracking log deleted
    - Safety tag removed (successful completion)
+   - Phase rollback tags removed (handled automatically by pipeline end)
 7. Progress: `✓ 6/6 Clean complete (deleted: {N}, dead code: {N}, CI: ✓)`
 
 ### Final Output

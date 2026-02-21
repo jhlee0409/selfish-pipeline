@@ -110,6 +110,21 @@ Create `specs/{feature}/plan.md`. **Must** follow the structure below:
 |------|--------|------------|
 | {risk} | {H/M/L} | {approach} |
 
+## Alternative Design
+### Approach A: {chosen approach name}
+{Brief description — this is the approach detailed above}
+
+### Approach B: {alternative approach name}
+{Brief description of a meaningfully different approach}
+
+| Criterion | Approach A | Approach B |
+|-----------|-----------|-----------|
+| Complexity | {evaluation} | {evaluation} |
+| Risk | {evaluation} | {evaluation} |
+| Maintainability | {evaluation} | {evaluation} |
+
+**Decision**: Approach {A/B} — {1-sentence rationale}
+
 ## Phase Breakdown
 ### Phase 1: Setup
 {project structure, type definitions, configuration}
@@ -137,7 +152,7 @@ Validate against these 5 criteria each pass:
 | **COMPLETENESS** | Are all requirements (FR-*) from spec.md reflected in the plan? |
 | **FEASIBILITY** | Is it compatible with the existing codebase? Are dependencies available? |
 | **ARCHITECTURE** | Does it comply with {config.architecture} rules? |
-| **RISK** | Are there any unidentified risks? |
+| **RISK** | Are there any unidentified risks? Additionally, if `memory/retrospectives/` directory contains files from previous pipeline runs, load each file and check whether the current plan addresses the patterns recorded there. Tag matched patterns with `[RETRO-CHECKED]`. |
 | **PRINCIPLES** | Does it not violate the MUST principles in principles.md? |
 
 **Output rules**:

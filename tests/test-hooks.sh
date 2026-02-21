@@ -779,6 +779,228 @@ assert_file_contains "architect agent has skills field" "$SCRIPT_DIR/agents/self
 # 14. selfish-security.md contains skills field
 assert_file_contains "security agent has skills field" "$SCRIPT_DIR/agents/selfish-security.md" "skills:"
 
+# ============================================================
+echo "=== selfish-timeline-log.sh ==="
+# ============================================================
+
+# T012-1. Basic event logging
+TEST_DIR=$(setup_tmpdir)
+mkdir -p "$TEST_DIR/.claude"
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-timeline-log.sh" "phase-start" "Test event" 2>/dev/null; CODE=$?
+assert_exit "timeline: basic log → exit 0" "0" "$CODE"
+assert_file_exists "timeline: jsonl file created" "$TEST_DIR/.claude/.selfish-timeline.jsonl"
+cleanup_tmpdir "$TEST_DIR"
+
+# T012-2. Log without active pipeline
+TEST_DIR=$(setup_tmpdir)
+mkdir -p "$TEST_DIR/.claude"
+CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-timeline-log.sh" "pipeline-start" "No pipeline" 2>/dev/null; CODE=$?
+assert_exit "timeline: no pipeline → exit 0" "0" "$CODE"
+OUTPUT=$(cat "$TEST_DIR/.claude/.selfish-timeline.jsonl" 2>/dev/null)
+assert_stdout_contains "timeline: feature=none when no pipeline" '"feature":"none"' "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T012-3. Missing arguments → exit 0 (never block)
+TEST_DIR=$(setup_tmpdir)
+CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-timeline-log.sh" 2>/dev/null; CODE=$?
+assert_exit "timeline: missing args → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# T012-4. Log rotation (file exceeds 1MB)
+TEST_DIR=$(setup_tmpdir)
+mkdir -p "$TEST_DIR/.claude"
+# Create a file just over 1MB
+dd if=/dev/zero bs=1048577 count=1 2>/dev/null | tr '\0' 'x' > "$TEST_DIR/.claude/.selfish-timeline.jsonl"
+CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-timeline-log.sh" "test" "rotation test" 2>/dev/null; CODE=$?
+assert_exit "timeline: rotation → exit 0" "0" "$CODE"
+assert_file_exists "timeline: rotated file exists" "$TEST_DIR/.claude/.selfish-timeline.jsonl.1"
+cleanup_tmpdir "$TEST_DIR"
+
+# T012-5. JSONL contains required fields
+TEST_DIR=$(setup_tmpdir)
+mkdir -p "$TEST_DIR/.claude"
+echo "my-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "spec" > "$TEST_DIR/.claude/.selfish-phase"
+CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-timeline-log.sh" "gate-pass" "CI passed" 2>/dev/null
+OUTPUT=$(cat "$TEST_DIR/.claude/.selfish-timeline.jsonl" 2>/dev/null)
+assert_stdout_contains "timeline: has ts field" '"ts":' "$OUTPUT"
+assert_stdout_contains "timeline: has event field" '"event":"gate-pass"' "$OUTPUT"
+assert_stdout_contains "timeline: has feature field" '"feature":"my-feature"' "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# ============================================================
+echo "=== selfish-parallel-validate.sh ==="
+# ============================================================
+
+# T013-1. Valid [P] tasks (no overlap)
+TEST_DIR=$(setup_tmpdir)
+cat > "$TEST_DIR/tasks.md" << 'TASKS_EOF'
+## Phase 1: Setup
+- [ ] T001 [P] Create service `src/a.ts`
+- [ ] T002 [P] Create helper `src/b.ts`
+## Phase 2: Core
+- [ ] T003 Do something `src/c.ts`
+TASKS_EOF
+OUTPUT=$("$SCRIPT_DIR/scripts/selfish-parallel-validate.sh" "$TEST_DIR/tasks.md" 2>/dev/null); CODE=$?
+assert_exit "parallel-validate: valid → exit 0" "0" "$CODE"
+assert_stdout_contains "parallel-validate: reports valid" "Valid:" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T013-2. Conflicting [P] tasks (same file)
+TEST_DIR=$(setup_tmpdir)
+cat > "$TEST_DIR/tasks.md" << 'TASKS_EOF'
+## Phase 1: Setup
+- [ ] T001 [P] Create service `src/shared.ts`
+- [ ] T002 [P] Modify service `src/shared.ts`
+TASKS_EOF
+set +e
+OUTPUT=$("$SCRIPT_DIR/scripts/selfish-parallel-validate.sh" "$TEST_DIR/tasks.md" 2>/dev/null); CODE=$?
+set -e
+assert_exit "parallel-validate: conflict → exit 1" "1" "$CODE"
+assert_stdout_contains "parallel-validate: reports CONFLICT" "CONFLICT" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T013-3. No [P] tasks at all
+TEST_DIR=$(setup_tmpdir)
+cat > "$TEST_DIR/tasks.md" << 'TASKS_EOF'
+## Phase 1: Setup
+- [ ] T001 Create service `src/a.ts`
+- [ ] T002 Create helper `src/b.ts`
+TASKS_EOF
+OUTPUT=$("$SCRIPT_DIR/scripts/selfish-parallel-validate.sh" "$TEST_DIR/tasks.md" 2>/dev/null); CODE=$?
+assert_exit "parallel-validate: no [P] → exit 0" "0" "$CODE"
+assert_stdout_contains "parallel-validate: no [P] message" "no [P] tasks found" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T013-4. Empty file
+TEST_DIR=$(setup_tmpdir)
+: > "$TEST_DIR/tasks.md"
+OUTPUT=$("$SCRIPT_DIR/scripts/selfish-parallel-validate.sh" "$TEST_DIR/tasks.md" 2>/dev/null); CODE=$?
+assert_exit "parallel-validate: empty file → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# T013-5. File not found
+TEST_DIR=$(setup_tmpdir)
+set +e
+OUTPUT=$("$SCRIPT_DIR/scripts/selfish-parallel-validate.sh" "$TEST_DIR/nonexistent.md" 2>&1); CODE=$?
+set -e
+assert_exit "parallel-validate: missing file → exit 1" "1" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# ============================================================
+echo "=== selfish-preflight-check.sh ==="
+# ============================================================
+
+# T014-1. Clean environment → pass
+TEST_DIR=$(setup_tmpdir_with_git)
+# Create a minimal package.json with test:all script
+cat > "$TEST_DIR/package.json" << 'PKG_EOF'
+{"scripts":{"test:all":"echo ok"}}
+PKG_EOF
+mkdir -p "$TEST_DIR/node_modules"
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-preflight-check.sh" 2>/dev/null); CODE=$?
+assert_exit "preflight: clean env → exit 0" "0" "$CODE"
+assert_stdout_contains "preflight: reports PASS" "PASS" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T014-2. Missing package.json CI scripts → fail
+TEST_DIR=$(setup_tmpdir_with_git)
+cat > "$TEST_DIR/package.json" << 'PKG_EOF'
+{"scripts":{}}
+PKG_EOF
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-preflight-check.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "preflight: no CI script → exit 1" "1" "$CODE"
+assert_stdout_contains "preflight: reports FAIL" "FAIL" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T014-3. Active pipeline → fail
+TEST_DIR=$(setup_tmpdir_with_git)
+cat > "$TEST_DIR/package.json" << 'PKG_EOF'
+{"scripts":{"test":"echo ok"}}
+PKG_EOF
+mkdir -p "$TEST_DIR/node_modules"
+echo "existing-pipeline" > "$TEST_DIR/.claude/.selfish-active"
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-preflight-check.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "preflight: active pipeline → exit 1" "1" "$CODE"
+assert_stdout_contains "preflight: reports pipeline running" "already running" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T014-4. Missing node_modules → warn but pass
+TEST_DIR=$(setup_tmpdir_with_git)
+cat > "$TEST_DIR/package.json" << 'PKG_EOF'
+{"scripts":{"test:all":"echo ok"}}
+PKG_EOF
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-preflight-check.sh" 2>/dev/null); CODE=$?
+assert_exit "preflight: no node_modules → exit 0 (warn)" "0" "$CODE"
+assert_stdout_contains "preflight: warns about node_modules" "node_modules" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T014-5. No package.json at all → fail (no CI command)
+TEST_DIR=$(setup_tmpdir_with_git)
+set +e
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-preflight-check.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "preflight: no package.json → exit 1" "1" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# ============================================================
+echo "=== selfish-pipeline-manage.sh (new subcommands) ==="
+# ============================================================
+
+# T015-1. log subcommand
+TEST_DIR=$(setup_tmpdir)
+mkdir -p "$TEST_DIR/.claude"
+echo "log-test" > "$TEST_DIR/.claude/.selfish-active"
+echo "plan" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" log "test-event" "test message" 2>/dev/null); CODE=$?
+assert_exit "pipeline-manage log → exit 0" "0" "$CODE"
+assert_file_exists "pipeline-manage log → jsonl created" "$TEST_DIR/.claude/.selfish-timeline.jsonl"
+cleanup_tmpdir "$TEST_DIR"
+
+# T015-2. phase-tag subcommand
+TEST_DIR=$(setup_tmpdir_with_git)
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" phase-tag 1 2>/dev/null); CODE=$?
+assert_exit "pipeline-manage phase-tag → exit 0" "0" "$CODE"
+assert_stdout_contains "pipeline-manage phase-tag → creates tag" "selfish/phase-1" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T015-3. phase-tag-clean subcommand
+TEST_DIR=$(setup_tmpdir_with_git)
+(cd "$TEST_DIR" && git tag "selfish/phase-1" && git tag "selfish/phase-2") 2>/dev/null
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" phase-tag-clean 2>/dev/null); CODE=$?
+assert_exit "pipeline-manage phase-tag-clean → exit 0" "0" "$CODE"
+assert_stdout_contains "pipeline-manage phase-tag-clean → removes tags" "Removed 2 phase tags" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T015-4. phase-tag-clean with no tags
+TEST_DIR=$(setup_tmpdir_with_git)
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" phase-tag-clean 2>/dev/null); CODE=$?
+assert_exit "pipeline-manage phase-tag-clean (no tags) → exit 0" "0" "$CODE"
+assert_stdout_contains "pipeline-manage phase-tag-clean (no tags) → message" "No phase tags" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T015-5. end subcommand cleans phase tags
+TEST_DIR=$(setup_tmpdir_with_git)
+echo "end-test" > "$TEST_DIR/.claude/.selfish-active"
+(cd "$TEST_DIR" && git tag "selfish/pre-auto" && git tag "selfish/phase-1" && git tag "selfish/phase-2") 2>/dev/null
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" end 2>/dev/null); CODE=$?
+assert_exit "pipeline-manage end → exit 0" "0" "$CODE"
+# Verify phase tags are gone
+REMAINING_TAGS=$(cd "$TEST_DIR" && git tag -l 'selfish/phase-*' 2>/dev/null || true)
+TOTAL=$((TOTAL + 1))
+if [ -z "$REMAINING_TAGS" ]; then
+  echo "  ✓ pipeline-manage end → phase tags cleaned"; PASS=$((PASS + 1))
+else
+  echo "  ✗ pipeline-manage end → phase tags remain: $REMAINING_TAGS"; FAIL=$((FAIL + 1))
+fi
+cleanup_tmpdir "$TEST_DIR"
+
 echo ""
 
 # ============================================================

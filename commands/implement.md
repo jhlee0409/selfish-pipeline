@@ -124,6 +124,17 @@ When a phase has more than 5 parallelizable tasks, use the **self-organizing swa
 4. **Wait for all workers to exit** — workers naturally terminate when the pool is empty
 5. **Verify**: check TaskList for any incomplete tasks → re-spawn workers if needed
 
+#### Swarm Worker Failure Recovery
+
+When a worker agent exits with error (non-zero return or timeout):
+1. Scan TaskList for tasks with status `in_progress` that have no active worker
+2. Reset each orphaned task: `TaskUpdate(taskId, status: "pending", owner: "")`
+3. Track retry count per task (max 2 retries)
+4. If a task fails 3 times → mark as `failed`, report to user: `"T{ID} failed after 3 attempts: {last error}"`
+5. Re-spawn replacement workers for remaining tasks
+
+> Workers should wrap their implement-complete loop in error handling so a single task failure doesn't crash the entire worker.
+
 > Swarm workers self-balance: fast workers claim more tasks. No batch boundaries needed.
 
 #### Dependency Resolution
@@ -136,6 +147,12 @@ When a phase has more than 5 parallelizable tasks, use the **self-organizing swa
 
 > **Always** read `docs/phase-gate-protocol.md` first and perform the 3 steps (CI gate → Mini-Review → Auto-Checkpoint) in order.
 > Cannot advance to the next phase without passing the gate. Abort and report to user after 3 consecutive CI failures.
+
+After passing the gate, create a phase rollback point:
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/selfish-pipeline-manage.sh" phase-tag {phase_number}
+```
+This enables granular rollback: `git reset --hard selfish/phase-{N}` restores state after Phase N completed.
 
 ### 4. Task Execution Pattern
 

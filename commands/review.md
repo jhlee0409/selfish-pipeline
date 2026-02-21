@@ -142,6 +142,22 @@ For each changed file, examine from the following perspectives:
 
 On FAIL: revise review and update final output.
 
+### 5.5. Archive Review Report
+
+When running inside a pipeline (specs/{feature}/ exists), persist the review results:
+
+1. Write full review output (Summary table + Detailed Findings + Positives) to `specs/{feature}/review-report.md`
+2. Include metadata header:
+   ```markdown
+   # Review Report: {feature name}
+   > Date: {YYYY-MM-DD}
+   > Files reviewed: {count}
+   > Findings: Critical {N} / Warning {N} / Info {N}
+   ```
+3. This file survives Clean phase (copied to `memory/reviews/{feature}-{date}.md` before specs/ deletion)
+
+When running standalone (no active pipeline), skip archiving — display results in console only.
+
 ### 6. Final Output
 
 ```
