@@ -28,7 +28,7 @@ OUTPUT=""
 
 # 1. Check for active pipeline
 if [ -f "$PIPELINE_FLAG" ]; then
-  FEATURE=$(cat "$PIPELINE_FLAG")
+  FEATURE=$(head -1 "$PIPELINE_FLAG" 2>/dev/null | tr -d '\n\r' || true)
   OUTPUT="[SELFISH PIPELINE ACTIVE] Feature: $FEATURE"
 
   # tasks.md progress
@@ -42,7 +42,7 @@ if [ -f "$PIPELINE_FLAG" ]; then
   # CI pass status
   CI_FLAG="$PROJECT_DIR/.claude/.selfish-ci-passed"
   if [ -f "$CI_FLAG" ]; then
-    OUTPUT="$OUTPUT | Last CI: PASSED ($(cat "$CI_FLAG"))"
+    OUTPUT="$OUTPUT | Last CI: PASSED ($(cat "$CI_FLAG" 2>/dev/null || true))"
   fi
 fi
 
@@ -55,7 +55,7 @@ if [ -f "$CHECKPOINT" ]; then
     if [ -n "$OUTPUT" ]; then
       OUTPUT="$OUTPUT | Checkpoint: $CHECKPOINT_DATE"
     else
-      OUTPUT="[CHECKPOINT EXISTS] Date: $CHECKPOINT_DATE — Run /selfish.resume to restore"
+      OUTPUT="[CHECKPOINT EXISTS] Date: $CHECKPOINT_DATE — Run /selfish:resume to restore"
     fi
   fi
 fi

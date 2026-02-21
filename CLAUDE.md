@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run lint          # shellcheck scripts/*.sh
-npm test              # bash tests/test-hooks.sh (101 assertions)
+npm test              # bash tests/test-hooks.sh (118 assertions)
 npm run test:all      # lint + test combined
 ```
 

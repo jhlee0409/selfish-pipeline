@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/selfish:test` test generation command
 - 3 preset templates: react-spa, express-api, monorepo
 - `.claude/rules/development.md` general development rules
-- Hook script test framework (tests/test-hooks.sh) with 101 assertions
+- Hook script test framework (tests/test-hooks.sh) with 118 assertions
 - 3 hook handler types: command (shell), prompt (LLM single-turn), agent (subagent with tools)
 - plugin.json `agents` field for agent auto-discovery
 - README.md, CHANGELOG.md documentation
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - package.json version 1.0.0 → 1.1.0
 - plugin.json and marketplace.json version sync to 1.1.0
-- Hook coverage expanded from 3 to 15 events (100%)
+- Hook coverage expanded from 4 to 15 events (100%)
 - auto-format and notify hooks converted to async
 - auto.md and implement.md prompt reduction via docs/ references
 - commands/architect.md and security.md use custom agents with persistent memory

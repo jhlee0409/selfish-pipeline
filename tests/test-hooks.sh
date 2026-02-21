@@ -618,6 +618,122 @@ cleanup_tmpdir "$TEST_DIR"
 echo ""
 
 # ============================================================
+echo "=== selfish-pipeline-manage.sh (extended) ==="
+# ============================================================
+
+# T-1a: ci-pass subcommand
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" ci-pass 2>/dev/null); CODE=$?
+assert_exit "ci-pass → exit 0" "0" "$CODE"
+assert_file_exists "ci-pass flag created" "$TEST_DIR/.claude/.selfish-ci-passed"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-1b: status subcommand (active pipeline)
+TEST_DIR=$(setup_tmpdir)
+echo "status-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" status 2>/dev/null); CODE=$?
+assert_exit "status → exit 0" "0" "$CODE"
+assert_stdout_contains "status → Active" "Active" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-1c: status subcommand (no active pipeline)
+TEST_DIR=$(setup_tmpdir)
+OUTPUT=$(CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-pipeline-manage.sh" status 2>/dev/null); CODE=$?
+assert_exit "status inactive → exit 0" "0" "$CODE"
+assert_stdout_contains "status → No active" "No active" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
+echo "=== selfish-stop-gate.sh (extended) ==="
+# ============================================================
+
+# T-2: stale CI (>600 seconds) → block
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+echo "1000000000" > "$TEST_DIR/.claude/.selfish-ci-passed"
+set +e
+OUTPUT=$(echo '{}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-stop-gate.sh" 2>&1); CODE=$?
+set -e
+assert_exit "stale CI → exit 2" "2" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-5: stop_hook_active=true → pass through (prevent infinite loop)
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+set +e
+OUTPUT=$(echo '{"stop_hook_active":true}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-stop-gate.sh" 2>/dev/null); CODE=$?
+set -e
+assert_exit "stop_hook_active → exit 0" "0" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
+echo "=== selfish-task-completed-gate.sh (extended) ==="
+# ============================================================
+
+# T-2b: stale CI in task-completed-gate → block
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "review" > "$TEST_DIR/.claude/.selfish-phase"
+echo "1000000000" > "$TEST_DIR/.claude/.selfish-ci-passed"
+set +e
+OUTPUT=$(echo '{}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-task-completed-gate.sh" 2>&1); CODE=$?
+set -e
+assert_exit "stale CI (task) → exit 2" "2" "$CODE"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
+echo "=== selfish-permission-request.sh (extended) ==="
+# ============================================================
+
+# T-3: command chaining detection (&&)
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(echo '{"tool_input":{"command":"npm test && rm -rf /"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-permission-request.sh" 2>/dev/null); CODE=$?
+assert_exit "chaining && → exit 0" "0" "$CODE"
+assert_stdout_empty "chaining && → no allow" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-3b: command chaining detection (;)
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(echo '{"tool_input":{"command":"npm test; rm -rf /"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-permission-request.sh" 2>/dev/null); CODE=$?
+assert_exit "chaining ; → exit 0" "0" "$CODE"
+assert_stdout_empty "chaining ; → no allow" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-3c: redirect detection (>)
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(echo '{"tool_input":{"command":"shellcheck foo > /tmp/out"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-permission-request.sh" 2>/dev/null); CODE=$?
+assert_exit "redirect > → exit 0" "0" "$CODE"
+assert_stdout_empty "redirect > → no allow" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+# T-4: chmod +x path traversal → blocked
+TEST_DIR=$(setup_tmpdir)
+echo "test-feature" > "$TEST_DIR/.claude/.selfish-active"
+echo "implement" > "$TEST_DIR/.claude/.selfish-phase"
+OUTPUT=$(echo '{"tool_input":{"command":"chmod +x ../../etc/evil.sh"}}' | CLAUDE_PROJECT_DIR="$TEST_DIR" "$SCRIPT_DIR/scripts/selfish-permission-request.sh" 2>/dev/null); CODE=$?
+assert_exit "chmod path traversal → exit 0" "0" "$CODE"
+assert_stdout_empty "chmod path traversal → no allow" "$OUTPUT"
+cleanup_tmpdir "$TEST_DIR"
+
+echo ""
+
+# ============================================================
 echo "=== agents/ + hooks.json type validation ==="
 # ============================================================
 

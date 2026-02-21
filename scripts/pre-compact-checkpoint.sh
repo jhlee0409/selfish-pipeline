@@ -31,29 +31,29 @@ mkdir -p "$MEMORY_DIR"
 BRANCH=$(cd "$PROJECT_DIR" 2>/dev/null && git branch --show-current 2>/dev/null || echo "unknown")
 
 ALL_MODIFIED=$(cd "$PROJECT_DIR" 2>/dev/null && git diff --name-only 2>/dev/null || true)
-MODIFIED=$(echo "$ALL_MODIFIED" | head -10)
+MODIFIED=$(printf '%s\n' "$ALL_MODIFIED" | head -10)
 
 ALL_STAGED=$(cd "$PROJECT_DIR" 2>/dev/null && git diff --cached --name-only 2>/dev/null || true)
-STAGED=$(echo "$ALL_STAGED" | head -10)
+STAGED=$(printf '%s\n' "$ALL_STAGED" | head -10)
 
 # Count files (capture into variable instead of piping wc -l)
 MODIFIED_COUNT=0
 if [ -n "$ALL_MODIFIED" ]; then
-  MODIFIED_RAW=$(echo "$ALL_MODIFIED" | wc -l)
-  MODIFIED_COUNT=$(echo "$MODIFIED_RAW" | tr -d ' ')
+  MODIFIED_RAW=$(printf '%s\n' "$ALL_MODIFIED" | wc -l)
+  MODIFIED_COUNT=$(printf '%s' "$MODIFIED_RAW" | tr -d ' ')
 fi
 
 STAGED_COUNT=0
 if [ -n "$ALL_STAGED" ]; then
-  STAGED_RAW=$(echo "$ALL_STAGED" | wc -l)
-  STAGED_COUNT=$(echo "$STAGED_RAW" | tr -d ' ')
+  STAGED_RAW=$(printf '%s\n' "$ALL_STAGED" | wc -l)
+  STAGED_COUNT=$(printf '%s' "$STAGED_RAW" | tr -d ' ')
 fi
 
 # Check selfish pipeline active status
 PIPELINE_FLAG="$PROJECT_DIR/.claude/.selfish-active"
 PIPELINE_FEATURE=""
 if [ -f "$PIPELINE_FLAG" ]; then
-  PIPELINE_FEATURE=$(cat "$PIPELINE_FLAG")
+  PIPELINE_FEATURE=$(head -1 "$PIPELINE_FLAG" 2>/dev/null | tr -d '\n\r' || true)
 fi
 
 # Check tasks.md progress status
@@ -102,7 +102,7 @@ $STAGED_LIST
 
 ## Restore Command
 \`\`\`
-/selfish.resume
+/selfish:resume
 \`\`\`
 EOF
 

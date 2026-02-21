@@ -11,7 +11,7 @@ hooks/      hooks.json (event → handler binding)
 agents/     2 persistent memory subagents
 docs/       shared reference documents
 templates/  5 project preset configs
-tests/      bash test suite (101 assertions)
+tests/      bash test suite (118 assertions)
 bin/        ESM CLI installer
 .claude-plugin/  plugin.json + marketplace.json
 ```
@@ -146,7 +146,7 @@ fi
 # Your logic here
 
 # Output response (varies by hook type)
-printf '{"decision":"allow"}\n'
+printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}\n'
 ```
 
 ### Step 2: Script conventions (mandatory)
@@ -163,14 +163,14 @@ printf '{"decision":"allow"}\n'
 
 | Hook type | stdin | Response format |
 |-----------|-------|-----------------|
-| **PreToolUse** | `{ "tool_name": "...", "tool_input": {...} }` | `{"decision":"allow"}` or `{"decision":"deny","reason":"..."}` |
+| **PreToolUse** | `{ "tool_name": "...", "tool_input": {...} }` | `{"hookSpecificOutput":{"permissionDecision":"allow"}}` or `{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"..."}}` |
 | **PostToolUse** | `{ "tool_name": "...", "tool_input": {...}, "tool_output": "..." }` | `{"hookSpecificOutput":{"additionalContext":"..."}}` |
 | **Stop** | `{}` | Exit 0 (allow) or exit 2 (block) |
 | **TaskCompleted** | `{ "task_description": "..." }` | `{"ok":true}` or `{"ok":false,"reason":"..."}` |
 | **UserPromptSubmit** | `{ "prompt": "..." }` | `{"hookSpecificOutput":{"additionalContext":"..."}}` |
 | **PermissionRequest** | `{ "tool_name": "Bash", "command": "..." }` | `{"hookSpecificOutput":{"decision":{"behavior":"allow"}}}` |
 | **SessionStart/End** | `{}` | stderr → user, stdout → Claude context |
-| **Notification** | `{ "type": "idle_prompt|permission_prompt" }` | stderr only |
+| **Notification** | `{ "notification_type": "idle_prompt|permission_prompt", "message": "..." }` | OS notification (no stdout/stderr) |
 
 ### Step 4: Register in hooks.json
 
@@ -447,7 +447,7 @@ cp "$SRC/CLAUDE.md" "$CACHE/CLAUDE.md"
 ### Running tests
 
 ```bash
-npm test              # bash tests/test-hooks.sh (101 assertions)
+npm test              # bash tests/test-hooks.sh (118 assertions)
 npm run lint          # shellcheck scripts/*.sh
 npm run test:all      # lint + test combined
 ```
