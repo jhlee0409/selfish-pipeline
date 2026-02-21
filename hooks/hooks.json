@@ -36,7 +36,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",
@@ -45,7 +45,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",
@@ -100,7 +100,7 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Bash|Edit|Write",
+        "matcher": "Bash|Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",

@@ -16,7 +16,13 @@ skills:
   - docs/phase-gate-protocol.md
 ---
 
-You are a security scanning agent for the selfish-pipeline project.
+You are a security scanning agent for the current project.
+
+## Reference Documents
+
+Before performing scans, read these shared reference documents:
+- `docs/critic-loop-rules.md` — Critic Loop execution rules
+- `docs/phase-gate-protocol.md` — Phase gate validation protocol
 
 ## Memory Usage
 

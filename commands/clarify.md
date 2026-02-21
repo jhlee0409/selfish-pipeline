@@ -3,7 +3,7 @@ name: selfish:clarify
 description: "Resolve spec ambiguities"
 argument-hint: "[focus area: security, performance, UI flow]"
 user-invocable: false
-model: haiku
+model: sonnet
 ---
 # /selfish:clarify — Resolve Spec Ambiguities
 

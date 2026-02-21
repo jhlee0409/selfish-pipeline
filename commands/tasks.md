@@ -3,7 +3,7 @@ name: selfish:tasks
 description: "Task decomposition"
 argument-hint: "[constraints/priority directives]"
 user-invocable: false
-model: haiku
+model: sonnet
 ---
 # /selfish:tasks — Task Decomposition
 
@@ -78,6 +78,8 @@ Decompose tasks per Phase defined in plan.md.
 6. **Phase gate**: Add a `{config.gate}` validation task at the end of each Phase
 
 ### 3. Critic Loop (1 iteration)
+
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
 
 | Criterion | Validation |
 |-----------|------------|

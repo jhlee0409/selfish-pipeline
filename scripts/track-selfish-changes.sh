@@ -38,7 +38,7 @@ fi
 
 if [ -n "$FILE_PATH" ]; then
   # Append to change log (deduplicate)
-  echo "$FILE_PATH" >> "$CHANGES_LOG"
+  printf '%s\n' "$FILE_PATH" >> "$CHANGES_LOG"
   sort -u -o "$CHANGES_LOG" "$CHANGES_LOG"
 
   # Invalidate CI results since a file was changed

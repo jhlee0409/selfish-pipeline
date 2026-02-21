@@ -72,9 +72,10 @@ if [ "$ALLOWED" = "false" ]; then
       ALLOWED=true
       ;;
     "chmod +x "*)
-      # Only allow paths within project directory
+      # Only allow paths within project directory (block path traversal)
       TARGET="${COMMAND#chmod +x }"
       case "$TARGET" in
+        *..*)  ;;  # Block path traversal
         "$PROJECT_DIR"/*|./scripts/*|scripts/*) ALLOWED=true ;;
       esac
       ;;

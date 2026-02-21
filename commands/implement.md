@@ -143,7 +143,7 @@ For each task:
 
 1. **Read files**: always read files before modifying them
 2. **Implement**: write code following the design in plan.md
-3. **Type check**: verify new code conforms to TypeScript strict mode
+3. **Type/Lint check**: verify new code passes `{config.gate}`
 4. **Update tasks.md**: mark completed tasks as `[x]`
    ```markdown
    - [x] T001 {description}  ← complete

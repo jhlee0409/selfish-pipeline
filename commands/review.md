@@ -133,6 +133,8 @@ For each changed file, examine from the following perspectives:
 
 ### 5. Critic Loop (1 pass)
 
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+
 | Criterion | Validation |
 |-----------|------------|
 | **COMPLETENESS** | Were all changed files reviewed? Are there any missed perspectives? |

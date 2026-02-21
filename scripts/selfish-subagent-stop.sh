@@ -55,6 +55,6 @@ AGENT_ID=$(printf '%s\n' "$AGENT_ID" | head -1 | tr -d '\n\r')
 AGENT_TYPE=$(printf '%s\n' "$AGENT_TYPE" | head -1 | tr -d '\n\r' | cut -c1-100)
 
 # Write to results log
-echo "$(date +%s) [${AGENT_TYPE}] ${AGENT_ID}: ${LAST_MSG}" >> "$RESULTS_LOG"
+printf '%s\n' "$(date +%s) [${AGENT_TYPE}] ${AGENT_ID}: ${LAST_MSG}" >> "$RESULTS_LOG"
 
 exit 0

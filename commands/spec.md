@@ -29,7 +29,7 @@ model: sonnet
 2. Determine **feature name**:
    - Extract 2-3 key keywords from `$ARGUMENTS`
    - Convert to kebab-case (e.g., "add user authentication" → `user-auth`)
-3. **Create directory**: `specs/{feature-name}/`
+3. **Create directory**: `specs/{feature-name}/` (create parent `specs/` directory if it does not exist)
 4. If already exists, confirm with user: "Overwrite existing spec?"
 
 ### 2. Explore Codebase
@@ -98,6 +98,8 @@ Create `specs/{feature-name}/spec.md`:
 ```
 
 ### 4. Critic Loop (1 pass)
+
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
 
 After writing, perform a **self-critique loop** once:
 

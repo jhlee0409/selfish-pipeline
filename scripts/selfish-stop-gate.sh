@@ -26,14 +26,13 @@ if [ ! -f "$PIPELINE_FLAG" ]; then
   exit 0
 fi
 
-FEATURE="${FEATURE:-$(cat "$PIPELINE_FLAG")}"
+FEATURE="$(head -1 "$PIPELINE_FLAG" | tr -d '\n\r')"
 
 # Check current Phase if phase file exists
 CURRENT_PHASE=""
 if [ -f "$PHASE_FLAG" ]; then
-  CURRENT_PHASE="$(cat "$PHASE_FLAG")"
+  CURRENT_PHASE="$(head -1 "$PHASE_FLAG" | tr -d '\n\r')"
 fi
-CURRENT_PHASE="${CURRENT_PHASE:-}"
 
 # Spec/Plan/Tasks Phase (1-3) do not require CI -> pass through
 case "${CURRENT_PHASE:-}" in
@@ -49,7 +48,7 @@ if [ ! -f "$CI_FLAG" ]; then
 fi
 
 # Verify CI passed within the last 10 minutes (prevent stale results)
-CI_TIME="${CI_TIME:-$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9')}"
+CI_TIME="$(cat "$CI_FLAG" 2>/dev/null | head -1 | tr -dc '0-9')"
 CI_TIME="${CI_TIME:-0}"
 NOW="$(date +%s)"
 if [ "$CI_TIME" -gt 0 ]; then

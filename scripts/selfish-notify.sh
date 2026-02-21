@@ -51,7 +51,7 @@ case "$OS" in
     ;;
   Linux)
     if command -v notify-send &>/dev/null; then
-      notify-send "$TITLE" "$MESSAGE" &>/dev/null || true
+      notify-send "$SAFE_TITLE" "$SAFE_MESSAGE" &>/dev/null || true
     fi
     ;;
   *)

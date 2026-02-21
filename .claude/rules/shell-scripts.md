@@ -12,7 +12,7 @@ Scripts in this project follow strict conventions for Claude Code hook compatibi
 2. `trap cleanup EXIT` with at minimum `:` placeholder
 3. Use `${CLAUDE_PROJECT_DIR:-$(pwd)}` for project root
 4. Parse stdin JSON with jq first, grep/sed fallback for jq-less environments
-5. Exit 0 on success; exit 2 for Stop/TaskCompleted hooks (blocks Claude response/task completion)
+5. Exit 0 on success; exit 2 for Stop/TaskCompleted/ConfigChange/TeammateIdle hooks (blocks action)
 
 ## I/O Safety
 - Use `printf '%s\n' "$VAR"` instead of `echo "$VAR"` when piping external data

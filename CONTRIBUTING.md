@@ -84,7 +84,7 @@ hooks:
           command: "${CLAUDE_PLUGIN_ROOT}/scripts/selfish-stop-gate.sh"
 ```
 
-Currently only `auto` and `implement` declare command-level hooks (for change tracking and stop gate during implementation).
+Note: Global hooks in `hooks/hooks.json` are always active. Command-level hooks in frontmatter should only be used when a command needs behavior that differs from the global hooks. Avoid duplicating global hooks in frontmatter (causes double execution).
 
 ### Step 5: Write the command body
 
@@ -241,44 +241,44 @@ Key testing patterns:
 Create `templates/selfish.config.{name}.md` following the structure:
 
 ```markdown
-# Project Configuration
+# Selfish Configuration
 
-## project
+## Project
 - name: {project-name}
 - type: {type}
 - language: TypeScript
 
-## ci
+## CI Commands
 \`\`\`bash
 npm run typecheck && npm run lint && npm test
 \`\`\`
 
-## gate
+## Phase Gate
 \`\`\`bash
 npm run typecheck && npm run lint
 \`\`\`
 
-## lint
+## Lint
 \`\`\`bash
 npm run lint
 \`\`\`
 
-## architecture
+## Architecture
 {Architecture description, layer rules, import direction rules}
 
-## framework
+## Framework
 {Framework-specific characteristics}
 
-## code_style
+## Code Style
 {Code style rules, naming conventions}
 
-## state_management
+## State Management
 {State management patterns}
 
-## risks
+## Risks
 {Project-specific risk patterns}
 
-## mini_review
+## Mini-Review
 {Checklist items for mini-review}
 ```
 
@@ -335,7 +335,7 @@ agent: selfish-{name}
 
 ## 5. Modifying Pipeline Flow
 
-The pipeline is `spec → plan → tasks → implement → test → review → clean`.
+The pipeline is `spec → plan → tasks → implement → review → clean`.
 
 ### Modifying a phase
 
@@ -446,9 +446,11 @@ rm -rf "$TEST_DIR"
 ### Assert functions
 
 ```bash
-assert_eq "$actual" "$expected" "test description"
-assert_contains "$string" "$substring" "test description"
-assert_not_contains "$string" "$substring" "test description"
+assert_exit "test description" "$expected_code" "$EXIT_CODE"
+assert_stdout_contains "test description" "substring" "$RESULT"
+assert_stdout_empty "test description" "$RESULT"
+assert_file_exists "test description" "$file_path"
+assert_file_contains "test description" "$file_path" "pattern"
 ```
 
 ### Test requirements for new scripts

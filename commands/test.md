@@ -75,6 +75,8 @@ Confirm strategy with user before proceeding.
 
 ### 4. Critic Loop (1 pass)
 
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+
 | Criterion | Validation |
 |-----------|------------|
 | **COVERAGE** | Are all core logic and branch points covered? |

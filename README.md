@@ -77,7 +77,7 @@ Spec (1/6) → Plan (2/6) → Tasks (3/6) → Implement (4/6) → Review (5/6) �
 
 ### 18 Slash Commands
 
-**User-invocable:**
+**User and model (unrestricted):**
 
 | Command | Description |
 |---|---|
@@ -88,22 +88,27 @@ Spec (1/6) → Plan (2/6) → Tasks (3/6) → Implement (4/6) → Review (5/6) �
 | `/selfish:test` | Test strategy planning and test writing |
 | `/selfish:review` | Code review with security scanning |
 | `/selfish:research` | Technical research with persistent storage |
+| `/selfish:debug` | Bug diagnosis and fix |
+
+**User-only** (`disable-model-invocation: true`):
+
+| Command | Description |
+|---|---|
 | `/selfish:init` | Project setup — detects stack and generates config |
 | `/selfish:doctor` | Diagnose project health and plugin setup |
+| `/selfish:architect` | Architecture analysis (persistent memory) |
+| `/selfish:security` | Security scan (persistent memory, isolated worktree) |
+| `/selfish:principles` | Project principles management |
+| `/selfish:checkpoint` | Save session state |
+| `/selfish:resume` | Restore session state |
 
-**Model-callable (internal):**
+**Model-only** (`user-invocable: false`):
 
 | Command | Description |
 |---|---|
 | `/selfish:tasks` | Break plan into parallelizable tasks |
 | `/selfish:analyze` | Verify artifact consistency |
-| `/selfish:architect` | Architecture analysis (persistent memory) |
-| `/selfish:security` | Security scan (persistent memory, isolated worktree) |
 | `/selfish:clarify` | Resolve spec ambiguities |
-| `/selfish:debug` | Bug diagnosis and fix |
-| `/selfish:principles` | Project principles management |
-| `/selfish:checkpoint` | Save session state |
-| `/selfish:resume` | Restore session state |
 
 ### 15 Hook Events
 

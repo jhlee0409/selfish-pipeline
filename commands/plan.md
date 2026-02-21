@@ -126,6 +126,8 @@ Create `specs/{feature}/plan.md`. **Must** follow the structure below:
 
 ### 5. Critic Loop (3 passes)
 
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+
 After drafting plan.md, perform **up to 3 self-critique passes**.
 
 Validate against these 5 criteria each pass:
@@ -148,8 +150,8 @@ Validate against these 5 criteria each pass:
 If research items are 3 or more, delegate to parallel research agents via Task tool:
 
 ```
-TaskCreate("Research: {topic1}", subagent_type: Explore)
-TaskCreate("Research: {topic2}", subagent_type: Explore)
+Task("Research: {topic1}", subagent_type: "general-purpose")
+Task("Research: {topic2}", subagent_type: "general-purpose")
 → collect results → consolidate into research.md
 ```
 

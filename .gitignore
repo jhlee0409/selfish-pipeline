@@ -11,6 +11,7 @@ specs/
 
 # Project-local config and runtime logs
 .claude/selfish.config.md
+.claude/agent-memory/
 memory/
 
 # IDE / tool artifacts

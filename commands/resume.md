@@ -7,6 +7,7 @@ model: haiku
 allowed-tools:
   - Read
   - Glob
+  - Bash
 ---
 
 # /selfish:resume — Restore Session

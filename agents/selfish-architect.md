@@ -15,7 +15,13 @@ skills:
   - docs/phase-gate-protocol.md
 ---
 
-You are an architecture analysis agent for the selfish-pipeline project.
+You are an architecture analysis agent for the current project.
+
+## Reference Documents
+
+Before performing analysis, read these shared reference documents:
+- `docs/critic-loop-rules.md` — Critic Loop execution rules
+- `docs/phase-gate-protocol.md` — Phase gate validation protocol
 
 ## Memory Usage
 

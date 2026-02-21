@@ -61,6 +61,8 @@ Verify starting from highest probability.
 
 ### 5. Critic Loop (2 passes)
 
+> **Always** read `docs/critic-loop-rules.md` first and follow it.
+
 | Criterion | Validation |
 |-----------|------------|
 | **SAFETY** | Does the fix break any other functionality? Any side effects? |

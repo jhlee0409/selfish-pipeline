@@ -1,7 +1,7 @@
 ---
 name: selfish:init
 description: "Project initial setup"
-argument-hint: "[preset name: nextjs-fsd]"
+argument-hint: "[preset: nextjs-fsd | react-spa | express-api | monorepo]"
 disable-model-invocation: true
 model: haiku
 ---
@@ -181,9 +181,9 @@ IMPORTANT: For requests matching the selfish skill routing table below, always i
 | Research | `selfish:research` | research, investigate |
 | Ambiguous | `selfish:clarify` | auto-triggered when requirements are unclear |
 | Full auto | `selfish:auto` | do it automatically, auto-run |
-| Diagnose | `selfish:doctor` | doctor, health check, diagnose, what's wrong |
 
 User-only (not auto-triggered — inform user on request):
+- `selfish:doctor` — inform user when health check is requested
 - `selfish:architect` — inform user when architecture review is requested
 - `selfish:security` — inform user when security scan is requested
 

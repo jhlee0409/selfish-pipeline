@@ -70,7 +70,7 @@ fi
 
 # Output (stdout -> injected into Claude context)
 if [ -n "$OUTPUT" ]; then
-  echo "$OUTPUT"
+  printf '%s\n' "$OUTPUT"
 fi
 
 exit 0

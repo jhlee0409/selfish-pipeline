@@ -40,6 +40,6 @@ if [ -n "$REASON" ]; then
   MSG="${MSG} (end reason: ${REASON})"
 fi
 
-echo "$MSG" >&2
+printf '%s\n' "$MSG" >&2
 
 exit 0
